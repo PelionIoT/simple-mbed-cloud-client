@@ -96,13 +96,10 @@ public:
         if (endpoint == NULL) {
             endpoint = _cloud_client.endpoint_info();
             if (endpoint) {
-                clear_screen();
-                print_to_screen(0, 3, "Cloud Client: Ready");
+
 #if MBED_CONF_APP_DEVELOPER_MODE == 1
-                print_to_screen(0, 15, endpoint->internal_endpoint_name.c_str());
                 printf("Endpoint Name: %s\r\n", endpoint->internal_endpoint_name.c_str());
 #else
-                print_to_screen(0, 15, endpoint->endpoint_name.c_str());
                 printf("Endpoint Name: %s\r\n", endpoint->endpoint_name.c_str());
 #endif
                 printf("Device Id: %s\r\n", endpoint->internal_endpoint_name.c_str());
