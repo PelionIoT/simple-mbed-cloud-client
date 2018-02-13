@@ -21,10 +21,41 @@ unsigned int m2m_method_to_index(M2MMethod::M2MMethod method) {
     }
 }
 
+void path_to_ids(const char* path, unsigned int *object_id,
+                 unsigned int *instance_id, unsigned int *resource_id) {
+    int len = strlen(path);
+    char *buffer = new char[len + 1];
+    buffer[len] = '\0';
+    strncpy(buffer, path, len);
+    unsigned int index = 0;
+    char * pch = strtok (buffer, "/");
+
+    unsigned int *ptr;
+    while (pch != NULL && index < 3) {
+        switch (index) {
+            case 0:
+                ptr = object_id;
+            break;
+
+            case 1:
+                ptr = instance_id;
+            break;
+
+            case 2:
+                ptr = resource_id;
+            break;
+        }
+
+        *ptr = atoi(pch);
+        pch = strtok (NULL, "/");
+        index++;
+    }
+
+    delete[] buffer;
+}
+
 MbedCloudClientResource::MbedCloudClientResource(SimpleMbedCloudClient *client, const char *path, const char *name)
-: client(client) {
-    this->path = path;
-    this->name = name;
+: client(client), resource(NULL), path(path), name(name) {
 }
 
 void MbedCloudClientResource::observable(bool observable) {
@@ -52,14 +83,42 @@ void MbedCloudClientResource::detatch_notification(M2MMethod::M2MMethod method) 
 }
 
 void MbedCloudClientResource::set_value(int value) {
-    // TODO
+    this->value = "";
+    this->value.append_int(value);
+
+    if (this->resource) {
+        this->resource->set_value((uint8_t*)this->value.c_str(), this->value.size());
+    }
 }
 
 void MbedCloudClientResource::set_value(char *value) {
-    // TODO
+    this->value = value;
+
+    if (this->resource) {
+        this->resource->set_value((uint8_t*)this->value.c_str(), strlen(value));
+    }
 }
 
-char* MbedCloudClientResource::get_value() {
-    // TODO
-    return (char*)"test";
+const char* MbedCloudClientResource::get_value() {
+    if (this->resource) {
+        return this->resource->get_value_string().c_str();
+    } else {
+        return this->value.c_str();
+    }
+}
+
+void MbedCloudClientResource::get_data(mcc_resource_def *resourceDef) {
+    path_to_ids(this->path.c_str(), &(resourceDef->object_id), &(resourceDef->instance_id), &(resourceDef->resource_id));
+    resourceDef->name = this->name;
+    resourceDef->method_mask = this->methodMask;
+    resourceDef->observable = this->isObservable;
+    resourceDef->value = this->value.c_str();
+
+    // TODO make these actual values
+    resourceDef->callback = NULL;
+    resourceDef->notification_callback = NULL;
+}
+
+void MbedCloudClientResource::set_resource(M2MResource *resource) {
+    this->resource = resource;
 }

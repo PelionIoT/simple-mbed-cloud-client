@@ -26,6 +26,8 @@
 #include "mbed-client/m2minterface.h"
 #include "mbed-client/m2mvector.h"
 #include "mbed_cloud_client_resource.h"
+#include "mbed.h"
+#include "NetworkInterface.h"
 
 class MbedCloudClientResource;
 
@@ -33,9 +35,10 @@ class SimpleMbedCloudClient {
 
 public:
 
-    SimpleMbedCloudClient();
+    SimpleMbedCloudClient(NetworkInterface *net);
     ~SimpleMbedCloudClient();
 
+    int init();
     bool call_register();
     void close();
     void register_update();
@@ -59,6 +62,7 @@ private:
     bool                _registered;
     bool                _register_called;
     Vector<MbedCloudClientResource*> _resources;
+    NetworkInterface *net;
 };
 
 #endif // SIMPLEMBEDCLOUDCLIENT_H

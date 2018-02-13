@@ -17,6 +17,18 @@ enum M2MMethod {
 
 };
 
+struct mcc_resource_def {
+    unsigned int object_id;
+    unsigned int instance_id;
+    unsigned int resource_id;
+    String name;
+    unsigned int method_mask;
+    const char* value;
+    bool observable;
+    void *callback;
+    void *notification_callback;
+};
+
 class SimpleMbedCloudClient;
 
 class MbedCloudClientResource {
@@ -31,12 +43,17 @@ class MbedCloudClientResource {
         void detatch_notification(M2MMethod::M2MMethod method);
         void set_value(int value);
         void set_value(char *value);
-        char* get_value();
+        const char* get_value();
+
+        void get_data(mcc_resource_def *resourceDef);
+        void set_resource(M2MResource *resource);
 
     private:
         SimpleMbedCloudClient *client;
+        M2MResource *resource;
         String path;
         String name;
+        String value;
         bool isObservable;
         unsigned int methodMask;
 

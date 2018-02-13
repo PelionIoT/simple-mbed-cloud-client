@@ -20,13 +20,13 @@
 #include "simple-mbed-cloud-client.h"
 #include "mbed-cloud-client/MbedCloudClient.h"
 #include "m2mdevice.h"
-#include "setup.h"
 #include "m2mresource.h"
 #include "mbed-client/m2minterface.h"
 #include "key_config_manager.h"
 #include "resource.h"
 #include "mbed-client/m2mvector.h"
 #include "mbed_cloud_client_resource.h"
+#include "factory_configurator_client.h"
 
 #ifdef MBED_CLOUD_CLIENT_USER_CONFIG_FILE
 #include MBED_CLOUD_CLIENT_USER_CONFIG_FILE
@@ -40,15 +40,67 @@
 #include "memory_tests.h"
 #endif
 
-
-SimpleMbedCloudClient::SimpleMbedCloudClient() :
+SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net) :
     _registered(false),
-    _register_called(false){
+    _register_called(false),
+    net(net) {
 }
 
 SimpleMbedCloudClient::~SimpleMbedCloudClient() {
     for (unsigned int i = 0; _resources.size(); i++) {
         delete _resources[i];
+    }
+}
+
+int SimpleMbedCloudClient::init() {
+    // Initialize the FCC
+    fcc_status_e fcc_status = fcc_init();
+    if(fcc_status != FCC_STATUS_SUCCESS) {
+        printf("fcc_init failed with status %d! - exit\n", fcc_status);
+        return 1;
+    }
+
+    // Resets storage to an empty state.
+    // Use this function when you want to clear storage from all the factory-tool generated data and user data.
+    // After this operation device must be injected again by using factory tool or developer certificate.
+#ifdef RESET_STORAGE
+    printf("Reset storage to an empty state.\n");
+    fcc_status_e delete_status = fcc_storage_delete();
+    if (delete_status != FCC_STATUS_SUCCESS) {
+        printf("Failed to delete storage - %d\n", delete_status);
+    }
+#endif
+
+    // Deletes existing firmware images from storage.
+    // This deletes any existing firmware images during application startup.
+    // This compilation flag is currently implemented only for mbed OS.
+#ifdef RESET_FIRMWARE
+    palStatus_t status = PAL_SUCCESS;
+    status = pal_fsRmFiles(DEFAULT_FIRMWARE_PATH);
+    if(status == PAL_SUCCESS) {
+        printf("Firmware storage erased.\n");
+    } else if (status == PAL_ERR_FS_NO_PATH) {
+        printf("Firmware path not found/does not exist.\n");
+    } else {
+        printf("Firmware storage erasing failed with %" PRId32, status);
+        return 1;
+    }
+#endif
+
+#if MBED_CONF_APP_DEVELOPER_MODE == 1
+    printf("Start developer flow\n");
+    fcc_status = fcc_developer_flow();
+    if (fcc_status == FCC_STATUS_KCM_FILE_EXIST_ERROR) {
+        printf("Developer credentials already exist\n");
+    } else if (fcc_status != FCC_STATUS_SUCCESS) {
+        printf("Failed to load developer credentials - exit\n");
+        return 1;
+    }
+#endif
+    fcc_status = fcc_verify_device_configured_4mbed_cloud();
+    if (fcc_status != FCC_STATUS_SUCCESS) {
+        printf("Device not configured for mbed Cloud - exit\n");
+        return 1;
     }
 }
 
@@ -58,16 +110,11 @@ bool SimpleMbedCloudClient::call_register() {
     _cloud_client.on_unregistered(this, &SimpleMbedCloudClient::client_unregistered);
     _cloud_client.on_error(this, &SimpleMbedCloudClient::error);
 
-    if (init_connection()) {
-        printf("Network initialized, connecting...\n");
-        bool setup = _cloud_client.setup(get_network_interface());
-        _register_called = true;
-        if (!setup) {
-            printf("Client setup failed\n");
-            return false;
-        }
-    } else {
-        printf("Failed to initialize connection\n");
+    printf("Connecting...\n");
+    bool setup = _cloud_client.setup(net);
+    _register_called = true;
+    if (!setup) {
+        printf("Client setup failed\n");
         return false;
     }
 
@@ -219,7 +266,17 @@ bool SimpleMbedCloudClient::is_register_called() {
 }
 
 void SimpleMbedCloudClient::register_and_connect() {
+    // TODO this might not work if called more than once...
+    mcc_resource_def resourceDef;
 
+    // TODO clean up
+    for (unsigned int i = 0; i < _resources.size(); i++) {
+        _resources[i]->get_data(&resourceDef);
+        _resources[i]->set_resource(add_resource(&_obj_list, resourceDef.object_id, resourceDef.instance_id,
+                     resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
+                     (M2MBase::Operation)resourceDef.method_mask, resourceDef.value, resourceDef.observable,
+                     resourceDef.callback, resourceDef.notification_callback));
+    }
     _cloud_client.add_objects(_obj_list);
 
     // Start registering to the cloud.
