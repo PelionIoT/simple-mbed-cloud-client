@@ -40,6 +40,8 @@
 #include "memory_tests.h"
 #endif
 
+#define DEFAULT_FIRMWARE_PATH       "/sd/firmware"
+
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net) :
     _registered(false),
     _register_called(false),
@@ -272,10 +274,11 @@ void SimpleMbedCloudClient::register_and_connect() {
     // TODO clean up
     for (unsigned int i = 0; i < _resources.size(); i++) {
         _resources[i]->get_data(&resourceDef);
-        _resources[i]->set_resource(add_resource(&_obj_list, resourceDef.object_id, resourceDef.instance_id,
+        M2MResource *res = add_resource(&_obj_list, resourceDef.object_id, resourceDef.instance_id,
                      resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
-                     (M2MBase::Operation)resourceDef.method_mask, resourceDef.value, resourceDef.observable,
-                     resourceDef.callback, resourceDef.notification_callback));
+                     (M2MBase::Operation)resourceDef.method_mask, resourceDef.value.c_str(), resourceDef.observable,
+                     resourceDef.put_callback, resourceDef.post_callback, resourceDef.notification_callback);
+        _resources[i]->set_resource(res);
     }
     _cloud_client.add_objects(_obj_list);
 
@@ -297,13 +300,4 @@ MbedCloudClientResource* SimpleMbedCloudClient::create_resource(const char *path
     MbedCloudClientResource *resource = new MbedCloudClientResource(this, path, name);
     _resources.push_back(resource);
     return resource;
-}
-
-M2MResource* SimpleMbedCloudClient::add_cloud_resource(uint16_t object_id, uint16_t instance_id,
-                          uint16_t resource_id, const char *resource_type,
-                          M2MResourceInstance::ResourceType data_type,
-                          M2MBase::Operation allowed, const char *value,
-                          bool observable, void *cb, void *notification_status_cb) {
-     return add_resource(&_obj_list, object_id, instance_id, resource_id, resource_type, data_type,
-                  allowed, value, observable, cb, notification_status_cb);
 }

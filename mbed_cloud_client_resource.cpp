@@ -1,25 +1,6 @@
+#include "mbed.h"
 #include "mbed_cloud_client_resource.h"
 #include "simple-mbed-cloud-client.h"
-
-unsigned int m2m_method_to_index(M2MMethod::M2MMethod method) {
-    switch (method) {
-        case M2MMethod::GET:
-            return 0;
-        break;
-
-        case M2MMethod::PUT:
-            return 1;
-        break;
-
-        case M2MMethod::POST:
-            return 2;
-        break;
-
-        case M2MMethod::DELETE:
-            return 3;
-        break;
-    }
-}
 
 void path_to_ids(const char* path, unsigned int *object_id,
                  unsigned int *instance_id, unsigned int *resource_id) {
@@ -55,7 +36,8 @@ void path_to_ids(const char* path, unsigned int *object_id,
 }
 
 MbedCloudClientResource::MbedCloudClientResource(SimpleMbedCloudClient *client, const char *path, const char *name)
-: client(client), resource(NULL), path(path), name(name) {
+: client(client), resource(NULL), path(path), name(name), putCallback(NULL),
+  postCallback(NULL), notificationCallback(NULL) {
 }
 
 void MbedCloudClientResource::observable(bool observable) {
@@ -66,20 +48,28 @@ void MbedCloudClientResource::methods(unsigned int methodMask) {
     this->methodMask = methodMask;
 }
 
-void MbedCloudClientResource::attach(M2MMethod::M2MMethod method, void *callback) {
-    this->callbacks[m2m_method_to_index(method)] = callback;
+void MbedCloudClientResource::attach_put_callback(Callback<void(const char*)> callback) {
+    this->putCallback = callback;
 }
 
-void MbedCloudClientResource::attach_notification(M2MMethod::M2MMethod method, void *callback) {
-    this->notification_callbacks[m2m_method_to_index(method)] = callback;
+void MbedCloudClientResource::attach_post_callback(Callback<void(void*)> callback) {
+    this->postCallback = callback;
 }
 
-void MbedCloudClientResource::detatch(M2MMethod::M2MMethod method) {
-    this->callbacks[m2m_method_to_index(method)] = NULL;
+void MbedCloudClientResource::attach_notification_callback(Callback<void(const M2MBase&, const NoticationDeliveryStatus)> callback) {
+    this->notificationCallback = callback;
 }
 
-void MbedCloudClientResource::detatch_notification(M2MMethod::M2MMethod method) {
-    this->notification_callbacks[m2m_method_to_index(method)] = NULL;
+void MbedCloudClientResource::detach_put_callback() {
+    this->putCallback = NULL;
+}
+
+void MbedCloudClientResource::detach_post_callback() {
+    this->postCallback = NULL;
+}
+
+void MbedCloudClientResource::detach_notification_callback() {
+    this->notificationCallback = NULL;
 }
 
 void MbedCloudClientResource::set_value(int value) {
@@ -99,11 +89,11 @@ void MbedCloudClientResource::set_value(char *value) {
     }
 }
 
-const char* MbedCloudClientResource::get_value() {
+String MbedCloudClientResource::get_value() {
     if (this->resource) {
-        return this->resource->get_value_string().c_str();
+        return this->resource->get_value_string();
     } else {
-        return this->value.c_str();
+        return this->value;
     }
 }
 
@@ -112,13 +102,12 @@ void MbedCloudClientResource::get_data(mcc_resource_def *resourceDef) {
     resourceDef->name = this->name;
     resourceDef->method_mask = this->methodMask;
     resourceDef->observable = this->isObservable;
-    resourceDef->value = this->value.c_str();
-
-    // TODO make these actual values
-    resourceDef->callback = NULL;
-    resourceDef->notification_callback = NULL;
+    resourceDef->value = this->get_value();
+    resourceDef->put_callback = &(this->putCallback);
+    resourceDef->post_callback = &(this->postCallback);
+    resourceDef->notification_callback = &(this->notificationCallback);
 }
 
-void MbedCloudClientResource::set_resource(M2MResource *resource) {
-    this->resource = resource;
+void MbedCloudClientResource::set_resource(M2MResource *res) {
+    this->resource = res;
 }
