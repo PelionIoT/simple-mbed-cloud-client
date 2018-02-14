@@ -1,3 +1,4 @@
+#include "mbed.h"
 #include "mbed_cloud_client_resource.h"
 #include "simple-mbed-cloud-client.h"
 
@@ -47,15 +48,15 @@ void MbedCloudClientResource::methods(unsigned int methodMask) {
     this->methodMask = methodMask;
 }
 
-void MbedCloudClientResource::attach_put_callback(void *callback) {
+void MbedCloudClientResource::attach_put_callback(Callback<void(const char*)> callback) {
     this->putCallback = callback;
 }
 
-void MbedCloudClientResource::attach_post_callback(void *callback) {
+void MbedCloudClientResource::attach_post_callback(Callback<void(void*)> callback) {
     this->postCallback = callback;
 }
 
-void MbedCloudClientResource::attach_notification_callback(void *callback) {
+void MbedCloudClientResource::attach_notification_callback(Callback<void(const M2MBase&, const NoticationDeliveryStatus)> callback) {
     this->notificationCallback = callback;
 }
 
@@ -102,11 +103,9 @@ void MbedCloudClientResource::get_data(mcc_resource_def *resourceDef) {
     resourceDef->method_mask = this->methodMask;
     resourceDef->observable = this->isObservable;
     resourceDef->value = this->get_value();
-
-    // TODO make these actual values
-    resourceDef->put_callback = this->putCallback;
-    resourceDef->post_callback = this->postCallback;
-    resourceDef->notification_callback = this->notificationCallback;
+    resourceDef->put_callback = &(this->putCallback);
+    resourceDef->post_callback = &(this->postCallback);
+    resourceDef->notification_callback = &(this->notificationCallback);
 }
 
 void MbedCloudClientResource::set_resource(M2MResource *res) {

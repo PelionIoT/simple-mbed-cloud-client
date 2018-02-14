@@ -1,6 +1,7 @@
 #ifndef MBED_CLOUD_CLIENT_RESOURCE_H
 #define MBED_CLOUD_CLIENT_RESOURCE_H
 
+#include "mbed.h"
 #include "simple-mbed-cloud-client.h"
 #include "mbed-client/m2mstring.h"
 
@@ -23,9 +24,9 @@ struct mcc_resource_def {
     unsigned int method_mask;
     String value;
     bool observable;
-    void *put_callback;
-    void *post_callback;
-    void *notification_callback;
+    Callback<void(const char*)> *put_callback;
+    Callback<void(void*)> *post_callback;
+    Callback<void(const M2MBase&, const NoticationDeliveryStatus)> *notification_callback;
 };
 
 class SimpleMbedCloudClient;
@@ -36,9 +37,9 @@ class MbedCloudClientResource {
 
         void observable(bool observable);
         void methods(unsigned int methodMask);
-        void attach_put_callback(void *callback);
-        void attach_post_callback(void *callback);
-        void attach_notification_callback(void *callback);
+        void attach_put_callback(Callback<void(const char*)> callback);
+        void attach_post_callback(Callback<void(void*)> callback);
+        void attach_notification_callback(Callback<void(const M2MBase&, const NoticationDeliveryStatus)> callback);
         void detach_put_callback();
         void detach_post_callback();
         void detach_notification_callback();
@@ -58,9 +59,9 @@ class MbedCloudClientResource {
         bool isObservable;
         unsigned int methodMask;
 
-        void *putCallback;
-        void *postCallback;
-        void *notificationCallback;
+        Callback<void(const char*)> putCallback;
+        Callback<void(void*)> postCallback;
+        Callback<void(const M2MBase&, const NoticationDeliveryStatus)> notificationCallback;
 };
 
 #endif // MBED_CLOUD_CLIENT_RESOURCE_H

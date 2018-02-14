@@ -21,11 +21,19 @@
 #include "mbed-client/m2minterface.h"
 #include <stdio.h>
 #include <string.h>
+#include "mbed.h"
+
+static void notification_delivery_status_cb_thunk(const M2MBase& base,
+                                                  const NoticationDeliveryStatus status,
+                                                  void *client_args) {
+    ((Callback<void(const M2MBase& base, const NoticationDeliveryStatus status)>*)client_args)->call(base, status);
+}
 
 M2MResource* add_resource(M2MObjectList *list, uint16_t object_id, uint16_t instance_id,
                           uint16_t resource_id, const char *resource_type, M2MResourceInstance::ResourceType data_type,
-                          M2MBase::Operation allowed, const char *value, bool observable, void *put_cb, void *post_cb,
-                          void *notification_status_cb)
+                          M2MBase::Operation allowed, const char *value, bool observable, Callback<void(const char*)> *put_cb,
+                          Callback<void(void*)> *post_cb,
+                          Callback<void(const M2MBase&, const NoticationDeliveryStatus)> *notification_status_cb)
 {
     M2MObject *object = NULL;
     M2MObjectInstance* object_instance = NULL;
@@ -66,15 +74,17 @@ M2MResource* add_resource(M2MObjectList *list, uint16_t object_id, uint16_t inst
     //Set allowed operations for accessing the resource.
     resource->set_operation(allowed);
     if (observable) {
-        resource->set_notification_delivery_status_cb(
-                    (void(*)(const M2MBase&,
-                             const NoticationDeliveryStatus,
-                             void*))notification_status_cb, NULL);
+        resource->set_notification_delivery_status_cb(notification_delivery_status_cb_thunk, notification_status_cb);
     }
 
 
-    resource->set_value_updated_function((void(*)(const char*))put_cb);
-    resource->set_execute_function((void(*)(void*))post_cb);
+    resource->set_value_updated_function(
+        FP1<void, const char*>(put_cb,
+            (void (Callback<void(const char*)>::*)(const char*))
+                &Callback<void(const char*)>::call));
+    resource->set_execute_function(FP1<void, void*>(post_cb,
+        (void (Callback<void(void*)>::*)(void*))
+            &Callback<void(void*)>::call));
 
     return resource;
 }
