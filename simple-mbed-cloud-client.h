@@ -50,11 +50,6 @@ public:
     void register_and_connect();
     MbedCloudClient& get_cloud_client();
     MbedCloudClientResource* create_resource(const char *path, const char *name);
-    M2MResource* add_cloud_resource(uint16_t object_id, uint16_t instance_id,
-                              uint16_t resource_id, const char *resource_type,
-                              M2MResourceInstance::ResourceType data_type,
-                              M2MBase::Operation allowed, const char *value,
-                              bool observable, void *cb, void *notification_status_cb);
 
 private:
     M2MObjectList       _obj_list;

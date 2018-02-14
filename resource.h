@@ -59,7 +59,8 @@ M2MResource* add_resource(M2MObjectList *list,
                           M2MBase::Operation allowed,
                           const char *value,
                           bool observable,
-                          void *cb,
+                          void *put_cb,
+                          void *post_cb,
                           void *notification_status_cb);
 
 #endif //RESOURCE_H

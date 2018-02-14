@@ -24,7 +24,7 @@
 
 M2MResource* add_resource(M2MObjectList *list, uint16_t object_id, uint16_t instance_id,
                           uint16_t resource_id, const char *resource_type, M2MResourceInstance::ResourceType data_type,
-                          M2MBase::Operation allowed, const char *value, bool observable, void *cb,
+                          M2MBase::Operation allowed, const char *value, bool observable, void *put_cb, void *post_cb,
                           void *notification_status_cb)
 {
     M2MObject *object = NULL;
@@ -60,7 +60,7 @@ M2MResource* add_resource(M2MObjectList *list, uint16_t object_id, uint16_t inst
     snprintf(name, 6, "%d", resource_id);
     resource = object_instance->create_dynamic_resource(name, resource_type, data_type, observable);
     //Set value if available.
-    if (value) {
+    if (value != "") {
         resource->set_value((const unsigned char*)value, strlen(value));
     }
     //Set allowed operations for accessing the resource.
@@ -72,13 +72,9 @@ M2MResource* add_resource(M2MObjectList *list, uint16_t object_id, uint16_t inst
                              void*))notification_status_cb, NULL);
     }
 
-    //Set callback of PUT or POST operation is enabled.
-    //NOTE: This function does not support setting them both.
-    if(allowed & M2MResourceInstance::PUT_ALLOWED) {
-        resource->set_value_updated_function((void(*)(const char*))cb);
-    } else if (allowed & M2MResourceInstance::POST_ALLOWED){
-        resource->set_execute_function((void(*)(void*))cb);
-    }
+
+    resource->set_value_updated_function((void(*)(const char*))put_cb);
+    resource->set_execute_function((void(*)(void*))post_cb);
 
     return resource;
 }
