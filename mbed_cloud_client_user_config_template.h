@@ -16,13 +16,16 @@
 // limitations under the License.
 // ----------------------------------------------------------------------------
 
+// This file is a template and it's intented to be copied to the application
+/* // Enable this configuration
 
 #ifndef MBED_CLOUD_CLIENT_USER_CONFIG_H
 #define MBED_CLOUD_CLIENT_USER_CONFIG_H
 
+
 #define MBED_CLOUD_CLIENT_ENDPOINT_TYPE         "default"
 
-// Enable either TCP or UDP
+// Enable either TCP or UDP, but no both
 #define MBED_CLOUD_CLIENT_TRANSPORT_MODE_TCP
 // MBED_CLOUD_CLIENT_TRANSPORT_MODE_UDP
 
@@ -31,22 +34,24 @@
 #define MBED_CLOUD_CLIENT_SUPPORT_UPDATE
 #define SN_COAP_MAX_BLOCKWISE_PAYLOAD_SIZE       1024
 
-/* set flag to enable update support in mbed Cloud client */
+// set flag to enable update support in mbed Cloud client
 #define MBED_CLOUD_CLIENT_SUPPORT_UPDATE
 
-/* set download buffer size in bytes (min. 1024 bytes) */
+// set download buffer size in bytes (min. 1024 bytes)
 
-/* Use larger buffers in Linux */
+// Use larger buffers in Linux //
 #ifdef __linux__
 #define MBED_CLOUD_CLIENT_UPDATE_BUFFER          (2 * 1024 * 1024)
 #else
 #define MBED_CLOUD_CLIENT_UPDATE_BUFFER          2048
 #endif
 
-/* Developer flags for Update feature */
+// Developer flags for Update feature
 #if MBED_CONF_APP_DEVELOPER_MODE == 1
     #define MBED_CLOUD_DEV_UPDATE_CERT
     #define MBED_CLOUD_DEV_UPDATE_ID
-#endif /* MBED_CONF_APP_DEVELOPER_MODE */
+#endif // MBED_CONF_APP_DEVELOPER_MODE
 
-#endif /* MBED_CLOUD_CLIENT_USER_CONFIG_H */
+#endif // MBED_CLOUD_CLIENT_USER_CONFIG_H
+
+*/
