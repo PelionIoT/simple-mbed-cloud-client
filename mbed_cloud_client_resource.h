@@ -37,20 +37,27 @@ class MbedCloudClientResource {
 
         void observable(bool observable);
         void methods(unsigned int methodMask);
-        void attach_put_callback(Callback<void(const char*)> callback);
-        void attach_post_callback(Callback<void(void*)> callback);
-        void attach_notification_callback(Callback<void(const M2MBase&, const NoticationDeliveryStatus)> callback);
+        void attach_put_callback(Callback<void(MbedCloudClientResource*, std::string)> callback);
+        void attach_post_callback(Callback<void(MbedCloudClientResource*, const uint8_t*, uint16_t)> callback);
+        void attach_notification_callback(Callback<void(MbedCloudClientResource*, const NoticationDeliveryStatus)> callback);
         void detach_put_callback();
         void detach_post_callback();
         void detach_notification_callback();
         void set_value(int value);
-        void set_value(char *value);
-        String get_value();
+        void set_value(const char *value);
+        std::string get_value();
 
         void get_data(mcc_resource_def *resourceDef);
         void set_resource(M2MResource *res);
+        M2MResource* get_resource();
+
+        static const char * delivery_status_to_string(const NoticationDeliveryStatus status);
 
     private:
+        void internal_post_callback(void* params);
+        void internal_put_callback(const char* resource);
+        void internal_notification_callback(const M2MBase& m2mbase, const NoticationDeliveryStatus status);
+
         SimpleMbedCloudClient *client;
         M2MResource *resource;
         String path;
@@ -59,9 +66,12 @@ class MbedCloudClientResource {
         bool isObservable;
         unsigned int methodMask;
 
-        Callback<void(const char*)> putCallback;
-        Callback<void(void*)> postCallback;
-        Callback<void(const M2MBase&, const NoticationDeliveryStatus)> notificationCallback;
+        Callback<void(MbedCloudClientResource*, std::string)> putCallback;
+        Callback<void(MbedCloudClientResource*, const uint8_t*, uint16_t)> postCallback;
+        Callback<void(MbedCloudClientResource*, const NoticationDeliveryStatus)> notificationCallback;
+        Callback<void(void*)> internalPostCallback;
+        Callback<void(const char*)> internalPutCallback;
+        Callback<void(const M2MBase&, const NoticationDeliveryStatus)> internalNotificationCallback;
 };
 
 #endif // MBED_CLOUD_CLIENT_RESOURCE_H

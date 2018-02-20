@@ -70,7 +70,7 @@ int SimpleMbedCloudClient::init() {
     // Initialize the FCC
     fcc_status_e fcc_status = fcc_init();
     if(fcc_status != FCC_STATUS_SUCCESS) {
-        printf("fcc_init failed with status %d! - exit\n", fcc_status);
+        printf("[Simple Cloud Client] Factory Client Configuration failed with status %d. \n", fcc_status);
         return 1;
     }
 
@@ -78,10 +78,10 @@ int SimpleMbedCloudClient::init() {
     // Use this function when you want to clear storage from all the factory-tool generated data and user data.
     // After this operation device must be injected again by using factory tool or developer certificate.
 #ifdef RESET_STORAGE
-    printf("Reset storage to an empty state.\n");
+    printf("[Simple Cloud Client] Reset storage to an empty state.\n");
     fcc_status_e delete_status = fcc_storage_delete();
     if (delete_status != FCC_STATUS_SUCCESS) {
-        printf("Failed to delete storage - %d\n", delete_status);
+        printf("[Simple Cloud Client] Failed to delete storage - %d\n", delete_status);
     }
 #endif
 
@@ -92,28 +92,28 @@ int SimpleMbedCloudClient::init() {
     palStatus_t status = PAL_SUCCESS;
     status = pal_fsRmFiles(DEFAULT_FIRMWARE_PATH);
     if(status == PAL_SUCCESS) {
-        printf("Firmware storage erased.\n");
+        printf("[Simple Cloud Client] Firmware storage erased.\n");
     } else if (status == PAL_ERR_FS_NO_PATH) {
-        printf("Firmware path not found/does not exist.\n");
+        printf("[Simple Cloud Client] Firmware path not found/does not exist.\n");
     } else {
-        printf("Firmware storage erasing failed with %" PRId32, status);
+        printf("[Simple Cloud Client] Firmware storage erasing failed with %" PRId32, status);
         return 1;
     }
 #endif
 
 #if MBED_CONF_APP_DEVELOPER_MODE == 1
-    printf("Start developer flow\n");
+    printf("[Simple Cloud Client] Starting developer flow\n");
     fcc_status = fcc_developer_flow();
     if (fcc_status == FCC_STATUS_KCM_FILE_EXIST_ERROR) {
-        printf("Developer credentials already exist\n");
+        printf("[Simple Cloud Client] Developer credentials already exist\n");
     } else if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("Failed to load developer credentials - exit\n");
+        printf("[Simple Cloud Client] Failed to load developer credentials - is the storage device active and accessible?\n");
         return 1;
     }
 #endif
     fcc_status = fcc_verify_device_configured_4mbed_cloud();
     if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("Device not configured for mbed Cloud - exit\n");
+        printf("[Simple Cloud Client] Device not configured for mbed Cloud - try re-formatting your storage device\n");
         return 1;
     }
 
@@ -126,11 +126,10 @@ bool SimpleMbedCloudClient::call_register() {
     _cloud_client.on_unregistered(this, &SimpleMbedCloudClient::client_unregistered);
     _cloud_client.on_error(this, &SimpleMbedCloudClient::error);
 
-    printf("Connecting...\n");
     bool setup = _cloud_client.setup(_net);
     _register_called = true;
     if (!setup) {
-        printf("Client setup failed\n");
+        printf("[Simple Cloud Client] Client setup failed\n");
         return false;
     }
 
@@ -265,9 +264,11 @@ void SimpleMbedCloudClient::error(int error_code) {
         default:
             error = "UNKNOWN";
     }
-    printf("\nError occurred : %s\r\n", error);
-    printf("Error code : %d\r\n\n", error_code);
-    printf("Error details : %s\r\n\n",_cloud_client.error_description());
+
+    // @todo: move this into user space
+    printf("\n[Simple Cloud Client] Error occurred : %s\n", error);
+    printf("[Simple Cloud Client] Error code : %d\n", error_code);
+    printf("[Simple Cloud Client] Error details : %s\n",_cloud_client.error_description());
 }
 
 bool SimpleMbedCloudClient::is_client_registered() {
@@ -298,7 +299,7 @@ void SimpleMbedCloudClient::register_and_connect() {
 
     // Print memory statistics if the MBED_HEAP_STATS_ENABLED is defined.
     #ifdef MBED_HEAP_STATS_ENABLED
-        printf("Register being called\r\n");
+        printf("[Simple Cloud Client] Register being called\r\n");
         heap_stats();
     #endif
 }
