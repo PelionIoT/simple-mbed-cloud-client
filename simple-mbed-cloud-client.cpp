@@ -27,6 +27,7 @@
 #include "mbed-client/m2mvector.h"
 #include "mbed_cloud_client_resource.h"
 #include "factory_configurator_client.h"
+#include "update_client_hub.h"
 
 #ifdef MBED_CLOUD_CLIENT_USER_CONFIG_FILE
 #include MBED_CLOUD_CLIENT_USER_CONFIG_FILE
@@ -45,7 +46,10 @@
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net) :
     _registered(false),
     _register_called(false),
-    net(net) {
+    _registered_cb(0),
+    _unregistered_cb(0),
+    _net(net)
+{
 }
 
 SimpleMbedCloudClient::~SimpleMbedCloudClient() {
@@ -55,6 +59,14 @@ SimpleMbedCloudClient::~SimpleMbedCloudClient() {
 }
 
 int SimpleMbedCloudClient::init() {
+    extern const uint8_t arm_uc_vendor_id[];
+    extern const uint16_t arm_uc_vendor_id_size;
+    extern const uint8_t arm_uc_class_id[];
+    extern const uint16_t arm_uc_class_id_size;
+
+    ARM_UC_SetVendorId(arm_uc_vendor_id, arm_uc_vendor_id_size);
+    ARM_UC_SetClassId(arm_uc_class_id, arm_uc_class_id_size);
+
     // Initialize the FCC
     fcc_status_e fcc_status = fcc_init();
     if(fcc_status != FCC_STATUS_SUCCESS) {
@@ -104,6 +116,8 @@ int SimpleMbedCloudClient::init() {
         printf("Device not configured for mbed Cloud - exit\n");
         return 1;
     }
+
+    return 0;
 }
 
 bool SimpleMbedCloudClient::call_register() {
@@ -113,7 +127,7 @@ bool SimpleMbedCloudClient::call_register() {
     _cloud_client.on_error(this, &SimpleMbedCloudClient::error);
 
     printf("Connecting...\n");
-    bool setup = _cloud_client.setup(net);
+    bool setup = _cloud_client.setup(_net);
     _register_called = true;
     if (!setup) {
         printf("Client setup failed\n");
@@ -143,18 +157,11 @@ void SimpleMbedCloudClient::register_update() {
 
 void SimpleMbedCloudClient::client_registered() {
     _registered = true;
-    printf("\nClient registered\n\n");
     static const ConnectorClientEndpointInfo* endpoint = NULL;
     if (endpoint == NULL) {
         endpoint = _cloud_client.endpoint_info();
-        if (endpoint) {
-
-#if MBED_CONF_APP_DEVELOPER_MODE == 1
-            printf("Endpoint Name: %s\r\n", endpoint->internal_endpoint_name.c_str());
-#else
-            printf("Endpoint Name: %s\r\n", endpoint->endpoint_name.c_str());
-#endif
-            printf("Device Id: %s\r\n", endpoint->internal_endpoint_name.c_str());
+        if (endpoint && _registered_cb) {
+            _registered_cb(endpoint);
         }
     }
 #ifdef MBED_HEAP_STATS_ENABLED
@@ -165,7 +172,11 @@ void SimpleMbedCloudClient::client_registered() {
 void SimpleMbedCloudClient::client_unregistered() {
     _registered = false;
     _register_called = false;
-    printf("\nClient unregistered - Exiting application\n\n");
+
+    if (_unregistered_cb) {
+        _unregistered_cb();
+    }
+
 #ifdef MBED_HEAP_STATS_ENABLED
     heap_stats();
 #endif
@@ -272,7 +283,7 @@ void SimpleMbedCloudClient::register_and_connect() {
     mcc_resource_def resourceDef;
 
     // TODO clean up
-    for (unsigned int i = 0; i < _resources.size(); i++) {
+    for (int i = 0; i < _resources.size(); i++) {
         _resources[i]->get_data(&resourceDef);
         M2MResource *res = add_resource(&_obj_list, resourceDef.object_id, resourceDef.instance_id,
                      resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
@@ -290,6 +301,14 @@ void SimpleMbedCloudClient::register_and_connect() {
         printf("Register being called\r\n");
         heap_stats();
     #endif
+}
+
+void SimpleMbedCloudClient::on_registered(Callback<void(const ConnectorClientEndpointInfo*)> cb) {
+    _registered_cb = cb;
+}
+
+void SimpleMbedCloudClient::on_unregistered(Callback<void()> cb) {
+    _unregistered_cb = cb;
 }
 
 MbedCloudClient& SimpleMbedCloudClient::get_cloud_client() {
