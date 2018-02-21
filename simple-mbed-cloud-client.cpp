@@ -41,7 +41,9 @@
 #include "memory_tests.h"
 #endif
 
+#ifndef DEFAULT_FIRMWARE_PATH
 #define DEFAULT_FIRMWARE_PATH       "/sd/firmware"
+#endif
 
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net) :
     _registered(false),
