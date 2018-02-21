@@ -57,7 +57,7 @@ void MbedCloudClientResource::methods(unsigned int methodMask) {
     this->methodMask = methodMask;
 }
 
-void MbedCloudClientResource::attach_put_callback(Callback<void(MbedCloudClientResource*, std::string)> callback) {
+void MbedCloudClientResource::attach_put_callback(Callback<void(MbedCloudClientResource*, m2m::String)> callback) {
     this->putCallback = callback;
 }
 
@@ -98,11 +98,11 @@ void MbedCloudClientResource::set_value(const char *value) {
     }
 }
 
-std::string MbedCloudClientResource::get_value() {
+m2m::String MbedCloudClientResource::get_value() {
     if (this->resource) {
-        return std::string(this->resource->get_value_string().c_str());
+        return this->resource->get_value_string();
     } else {
-        return std::string(this->value.c_str());
+        return this->value;
     }
 }
 
@@ -155,7 +155,7 @@ void MbedCloudClientResource::get_data(mcc_resource_def *resourceDef) {
     resourceDef->name = this->name;
     resourceDef->method_mask = this->methodMask;
     resourceDef->observable = this->isObservable;
-    resourceDef->value = m2m::String(this->get_value().c_str());
+    resourceDef->value = this->get_value();
     resourceDef->put_callback = &(this->internalPutCallback);
     resourceDef->post_callback = &(this->internalPostCallback);
     resourceDef->notification_callback = &(this->internalNotificationCallback);

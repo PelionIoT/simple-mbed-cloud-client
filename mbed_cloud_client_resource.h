@@ -37,7 +37,7 @@ class MbedCloudClientResource {
 
         void observable(bool observable);
         void methods(unsigned int methodMask);
-        void attach_put_callback(Callback<void(MbedCloudClientResource*, std::string)> callback);
+        void attach_put_callback(Callback<void(MbedCloudClientResource*, m2m::String)> callback);
         void attach_post_callback(Callback<void(MbedCloudClientResource*, const uint8_t*, uint16_t)> callback);
         void attach_notification_callback(Callback<void(MbedCloudClientResource*, const NoticationDeliveryStatus)> callback);
         void detach_put_callback();
@@ -45,7 +45,7 @@ class MbedCloudClientResource {
         void detach_notification_callback();
         void set_value(int value);
         void set_value(const char *value);
-        std::string get_value();
+        m2m::String get_value();
 
         void get_data(mcc_resource_def *resourceDef);
         void set_m2m_resource(M2MResource *res);
@@ -60,13 +60,13 @@ class MbedCloudClientResource {
 
         SimpleMbedCloudClient *client;
         M2MResource *resource;
-        String path;
-        String name;
-        String value;
+        m2m::String path;
+        m2m::String name;
+        m2m::String value;
         bool isObservable;
         unsigned int methodMask;
 
-        Callback<void(MbedCloudClientResource*, std::string)> putCallback;
+        Callback<void(MbedCloudClientResource*, m2m::String)> putCallback;
         Callback<void(MbedCloudClientResource*, const uint8_t*, uint16_t)> postCallback;
         Callback<void(MbedCloudClientResource*, const NoticationDeliveryStatus)> notificationCallback;
         Callback<void(void*)> internalPostCallback;
