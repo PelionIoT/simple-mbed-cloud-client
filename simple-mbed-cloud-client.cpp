@@ -46,8 +46,8 @@
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net) :
     _registered(false),
     _register_called(false),
-    _registered_cb(0),
-    _unregistered_cb(0),
+    _registered_cb(NULL),
+    _unregistered_cb(NULL),
     _net(net)
 {
 }
@@ -290,7 +290,7 @@ void SimpleMbedCloudClient::register_and_connect() {
                      resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
                      (M2MBase::Operation)resourceDef.method_mask, resourceDef.value.c_str(), resourceDef.observable,
                      resourceDef.put_callback, resourceDef.post_callback, resourceDef.notification_callback);
-        _resources[i]->set_resource(res);
+        _resources[i]->set_m2m_resource(res);
     }
     _cloud_client.add_objects(_obj_list);
 

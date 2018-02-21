@@ -48,8 +48,8 @@ class MbedCloudClientResource {
         std::string get_value();
 
         void get_data(mcc_resource_def *resourceDef);
-        void set_resource(M2MResource *res);
-        M2MResource* get_resource();
+        void set_m2m_resource(M2MResource *res);
+        M2MResource* get_m2m_resource();
 
         static const char * delivery_status_to_string(const NoticationDeliveryStatus status);
 

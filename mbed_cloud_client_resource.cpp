@@ -146,7 +146,7 @@ const char * MbedCloudClientResource::delivery_status_to_string(const Notication
     }
 }
 
-M2MResource *MbedCloudClientResource::get_resource() {
+M2MResource *MbedCloudClientResource::get_m2m_resource() {
     return resource;
 }
 
@@ -161,6 +161,6 @@ void MbedCloudClientResource::get_data(mcc_resource_def *resourceDef) {
     resourceDef->notification_callback = &(this->internalNotificationCallback);
 }
 
-void MbedCloudClientResource::set_resource(M2MResource *res) {
+void MbedCloudClientResource::set_m2m_resource(M2MResource *res) {
     this->resource = res;
 }
