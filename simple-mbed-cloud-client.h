@@ -50,14 +50,18 @@ public:
     void register_and_connect();
     MbedCloudClient& get_cloud_client();
     MbedCloudClientResource* create_resource(const char *path, const char *name);
+    void on_registered(Callback<void(const ConnectorClientEndpointInfo*)> cb);
+    void on_unregistered(Callback<void()> cb);
 
 private:
-    M2MObjectList       _obj_list;
-    MbedCloudClient     _cloud_client;
-    bool                _registered;
-    bool                _register_called;
-    Vector<MbedCloudClientResource*> _resources;
-    NetworkInterface *net;
+    M2MObjectList                                       _obj_list;
+    MbedCloudClient                                     _cloud_client;
+    bool                                                _registered;
+    bool                                                _register_called;
+    Vector<MbedCloudClientResource*>                    _resources;
+    Callback<void(const ConnectorClientEndpointInfo*)>  _registered_cb;
+    Callback<void()>                                    _unregistered_cb;
+    NetworkInterface *                                  _net;
 };
 
 #endif // SIMPLEMBEDCLOUDCLIENT_H
