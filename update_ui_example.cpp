@@ -19,11 +19,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#ifdef MBED_APPLICATION_SHIELD
-#include "C12832.h"
-extern C12832* lcd;
-#endif
-
 static MbedCloudClient* _client;
 
 #ifdef ARM_UPDATE_CLIENT_VERSION_VALUE
@@ -50,11 +45,6 @@ void update_authorize(int32_t request)
             printf("Firmware download requested\r\n");
             printf("Authorization granted\r\n");
             _client->update_authorize(MbedCloudClient::UpdateRequestDownload);
-
-#ifdef MBED_APPLICATION_SHIELD
-            /* clear screen */
-            lcd->cls();
-#endif
             break;
 
         /* Cloud Client wishes to reboot and apply the new firmware.
@@ -81,20 +71,6 @@ void update_authorize(int32_t request)
 void update_progress(uint32_t progress, uint32_t total)
 {
     uint8_t percent = progress * 100 / total;
-
-#ifdef MBED_APPLICATION_SHIELD
-    /* display progress */
-    uint8_t bar = progress * 90 / total;
-
-    lcd->locate(0,3);
-    lcd->printf("Downloading: %d / %d KiB", progress / 1024, total / 1024);
-
-    lcd->rect(0, 15, 90, 22, 1);
-    lcd->fillrect(0, 15, bar, 22, 1);
-
-    lcd->locate(91, 15);
-    lcd->printf(" %d %%", percent);
-#endif
 
 /* only show progress bar if debug trace is disabled */
 #if (!defined(MBED_CONF_MBED_TRACE_ENABLE) || MBED_CONF_MBED_TRACE_ENABLE == 0) \
