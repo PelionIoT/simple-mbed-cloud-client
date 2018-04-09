@@ -1,20 +1,16 @@
-// ----------------------------------------------------------------------------
-// Copyright 2016-2017 ARM Ltd.
+//----------------------------------------------------------------------------
+// The confidential and proprietary information contained in this file may
+// only be used by a person authorised under and to the extent permitted
+// by a subsisting licensing agreement from ARM Limited or its affiliates.
 //
-// SPDX-License-Identifier: Apache-2.0
+// (C) COPYRIGHT 2016 ARM Limited or its affiliates.
+// ALL RIGHTS RESERVED
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------------------------------------------------------
+// This entire notice must be reproduced on all copies of this file
+// and copies of this file may only be made by a person if such person is
+// permitted to do so under the terms of a subsisting license agreement
+// from ARM Limited or its affiliates.
+//----------------------------------------------------------------------------
 
 #include "update_ui_example.h"
 
@@ -22,6 +18,11 @@
 
 #include <stdio.h>
 #include <stdint.h>
+
+#ifdef MBED_APPLICATION_SHIELD
+#include "C12832.h"
+extern C12832* lcd;
+#endif
 
 static MbedCloudClient* _client;
 
@@ -50,6 +51,10 @@ void update_authorize(int32_t request)
             printf("Authorization granted\r\n");
             _client->update_authorize(MbedCloudClient::UpdateRequestDownload);
 
+#ifdef MBED_APPLICATION_SHIELD
+            /* clear screen */
+            lcd->cls();
+#endif
             break;
 
         /* Cloud Client wishes to reboot and apply the new firmware.
@@ -75,10 +80,24 @@ void update_authorize(int32_t request)
 
 void update_progress(uint32_t progress, uint32_t total)
 {
-    uint8_t percent = (uint8_t)((uint64_t)progress * 100 / total);
+    uint8_t percent = progress * 100 / total;
+
+#ifdef MBED_APPLICATION_SHIELD
+    /* display progress */
+    uint8_t bar = progress * 90 / total;
+
+    lcd->locate(0,3);
+    lcd->printf("Downloading: %d / %d KiB", progress / 1024, total / 1024);
+
+    lcd->rect(0, 15, 90, 22, 1);
+    lcd->fillrect(0, 15, bar, 22, 1);
+
+    lcd->locate(91, 15);
+    lcd->printf(" %d %%", percent);
+#endif
 
 /* only show progress bar if debug trace is disabled */
-#if !defined(MBED_CONF_MBED_TRACE_ENABLE) \
+#if (!defined(MBED_CONF_MBED_TRACE_ENABLE) || MBED_CONF_MBED_TRACE_ENABLE == 0) \
     && !ARM_UC_ALL_TRACE_ENABLE \
     && !ARM_UC_HUB_TRACE_ENABLE
 

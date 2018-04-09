@@ -35,7 +35,7 @@ class SimpleMbedCloudClient {
 
 public:
 
-    SimpleMbedCloudClient(NetworkInterface *net);
+    SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs);
     ~SimpleMbedCloudClient();
 
     int init();
@@ -54,6 +54,9 @@ public:
     void on_unregistered(Callback<void()> cb);
 
 private:
+    int reformat_storage();
+    void reset_storage();
+
     M2MObjectList                                       _obj_list;
     MbedCloudClient                                     _cloud_client;
     bool                                                _registered;
@@ -62,6 +65,8 @@ private:
     Callback<void(const ConnectorClientEndpointInfo*)>  _registered_cb;
     Callback<void()>                                    _unregistered_cb;
     NetworkInterface *                                  _net;
+    BlockDevice *                                       _bd;
+    FileSystem *                                        _fs;
 };
 
 #endif // SIMPLEMBEDCLOUDCLIENT_H
