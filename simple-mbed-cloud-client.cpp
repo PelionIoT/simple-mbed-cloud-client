@@ -45,14 +45,18 @@
 #define DEFAULT_FIRMWARE_PATH       "/sd/firmware"
 #endif
 
+BlockDevice *arm_uc_blockdevice;
+
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs) :
     _registered(false),
     _register_called(false),
     _registered_cb(NULL),
     _unregistered_cb(NULL),
-    _net(net)
+    _net(net),
     _bd(bd),
-    _fs(fs) {
+    _fs(fs)
+{
+    arm_uc_blockdevice = bd;
 }
 
 SimpleMbedCloudClient::~SimpleMbedCloudClient() {
@@ -62,6 +66,10 @@ SimpleMbedCloudClient::~SimpleMbedCloudClient() {
 }
 
 int SimpleMbedCloudClient::init() {
+    // Requires DAPLink 245+ (https://github.com/ARMmbed/DAPLink/pull/364)
+    // Older versions: workaround to prevent possible deletion of credentials:
+    wait(1);
+
     extern const uint8_t arm_uc_vendor_id[];
     extern const uint16_t arm_uc_vendor_id_size;
     extern const uint8_t arm_uc_class_id[];
