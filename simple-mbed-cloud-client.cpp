@@ -346,11 +346,11 @@ MbedCloudClientResource* SimpleMbedCloudClient::create_resource(const char *path
 int SimpleMbedCloudClient::reformat_storage()
 {
     int reformat_result = -1;
-    printf("Autoformatting the storage.\n");
+    printf("[Simple Cloud Client] Autoformatting the storage.\n");
     if (_bd) {
         reformat_result = _fs->reformat(_bd);
         if (reformat_result != 0) {
-            printf("Autoformatting failed with error %d\n", reformat_result);
+            printf("[Simple Cloud Client] Autoformatting failed with error %d\n", reformat_result);
         }
     }
     return reformat_result;
@@ -358,9 +358,9 @@ int SimpleMbedCloudClient::reformat_storage()
 
 void SimpleMbedCloudClient::reset_storage()
 {
-    printf("Reset storage to an empty state.\n");
+    printf("[Simple Cloud Client] Reset storage to an empty state.\n");
     fcc_status_e delete_status = fcc_storage_delete();
     if (delete_status != FCC_STATUS_SUCCESS) {
-        printf("Failed to delete storage - %d\n", delete_status);
+        printf("[Simple Cloud Client] Failed to delete storage - %d\n", delete_status);
     }
 }
