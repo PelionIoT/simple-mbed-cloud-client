@@ -45,7 +45,10 @@ class MbedCloudClientResource {
         void detach_notification_callback();
         void set_value(int value);
         void set_value(const char *value);
+        void set_value(float value);
         m2m::String get_value();
+        int get_value_int();
+        float get_value_float();
 
         void get_data(mcc_resource_def *resourceDef);
         void set_m2m_resource(M2MResource *res);

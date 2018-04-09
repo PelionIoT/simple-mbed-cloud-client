@@ -98,6 +98,15 @@ void MbedCloudClientResource::set_value(const char *value) {
     }
 }
 
+void MbedCloudClientResource::set_value(float value) {
+    char str[25];
+    int length = sprintf(str, "%g", value);
+
+    if (this->resource) {
+        this->resource->set_value((uint8_t*)str, length);
+    }
+}
+
 m2m::String MbedCloudClientResource::get_value() {
     if (this->resource) {
         return this->resource->get_value_string();
@@ -163,4 +172,16 @@ void MbedCloudClientResource::get_data(mcc_resource_def *resourceDef) {
 
 void MbedCloudClientResource::set_m2m_resource(M2MResource *res) {
     this->resource = res;
+}
+
+int MbedCloudClientResource::get_value_int() {
+    if (!this->resource) return 0;
+
+    return this->resource->get_value_int();
+}
+
+float MbedCloudClientResource::get_value_float() {
+    if (!this->resource) return 0.0f;
+
+    return atof(this->get_value().c_str());
 }
