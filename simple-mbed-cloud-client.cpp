@@ -97,6 +97,12 @@ int SimpleMbedCloudClient::init() {
 
         reset_storage();
     }
+#else
+    fcc_status = fcc_verify_device_configured_4mbed_cloud();
+    if (fcc_status != FCC_STATUS_SUCCESS) {
+        printf("[Simple Cloud Client] Device not configured for mbed Cloud - try re-formatting your storage device or set MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR to 1\n");
+        return 1;
+    }
 #endif
 
     // Resets storage to an empty state.
@@ -132,11 +138,6 @@ int SimpleMbedCloudClient::init() {
         return 1;
     }
 #endif
-    fcc_status = fcc_verify_device_configured_4mbed_cloud();
-    if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[Simple Cloud Client] Device not configured for mbed Cloud - try re-formatting your storage device\n");
-        return 1;
-    }
 
     return 0;
 }
