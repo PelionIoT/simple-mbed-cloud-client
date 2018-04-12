@@ -1,3 +1,21 @@
+// ----------------------------------------------------------------------------
+// Copyright 2016-2018 ARM Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ----------------------------------------------------------------------------
+
 #include "mbed.h"
 #include "mbed_cloud_client_resource.h"
 #include "simple-mbed-cloud-client.h"
@@ -98,6 +116,15 @@ void MbedCloudClientResource::set_value(const char *value) {
     }
 }
 
+void MbedCloudClientResource::set_value(float value) {
+    char str[25];
+    int length = sprintf(str, "%g", value);
+
+    if (this->resource) {
+        this->resource->set_value((uint8_t*)str, length);
+    }
+}
+
 m2m::String MbedCloudClientResource::get_value() {
     if (this->resource) {
         return this->resource->get_value_string();
@@ -163,4 +190,16 @@ void MbedCloudClientResource::get_data(mcc_resource_def *resourceDef) {
 
 void MbedCloudClientResource::set_m2m_resource(M2MResource *res) {
     this->resource = res;
+}
+
+int MbedCloudClientResource::get_value_int() {
+    if (!this->resource) return 0;
+
+    return this->resource->get_value_int();
+}
+
+float MbedCloudClientResource::get_value_float() {
+    if (!this->resource) return 0.0f;
+
+    return atof(this->get_value().c_str());
 }

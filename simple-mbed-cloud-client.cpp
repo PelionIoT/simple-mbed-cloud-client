@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// Copyright 2016-2017 ARM Ltd.
+// Copyright 2016-2018 ARM Ltd.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -45,13 +45,18 @@
 #define DEFAULT_FIRMWARE_PATH       "/sd/firmware"
 #endif
 
-SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net) :
+BlockDevice *arm_uc_blockdevice;
+
+SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs) :
     _registered(false),
     _register_called(false),
     _registered_cb(NULL),
     _unregistered_cb(NULL),
-    _net(net)
+    _net(net),
+    _bd(bd),
+    _fs(fs)
 {
+    arm_uc_blockdevice = bd;
 }
 
 SimpleMbedCloudClient::~SimpleMbedCloudClient() {
@@ -61,6 +66,10 @@ SimpleMbedCloudClient::~SimpleMbedCloudClient() {
 }
 
 int SimpleMbedCloudClient::init() {
+    // Requires DAPLink 245+ (https://github.com/ARMmbed/DAPLink/pull/364)
+    // Older versions: workaround to prevent possible deletion of credentials:
+    wait(1);
+
     extern const uint8_t arm_uc_vendor_id[];
     extern const uint16_t arm_uc_vendor_id_size;
     extern const uint8_t arm_uc_class_id[];
@@ -76,15 +85,31 @@ int SimpleMbedCloudClient::init() {
         return 1;
     }
 
+    // This is designed to simplify user-experience by auto-formatting the
+    // primary storage if no valid certificates exist.
+    // This should never be used for any kind of production devices.
+#if defined(MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR) && MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR == 1
+    fcc_status = fcc_verify_device_configured_4mbed_cloud();
+    if (fcc_status != FCC_STATUS_SUCCESS) {
+        if (reformat_storage() != 0) {
+            return 1;
+        }
+
+        reset_storage();
+    }
+#else
+    fcc_status = fcc_verify_device_configured_4mbed_cloud();
+    if (fcc_status != FCC_STATUS_SUCCESS) {
+        printf("[Simple Cloud Client] Device not configured for mbed Cloud - try re-formatting your storage device or set MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR to 1\n");
+        return 1;
+    }
+#endif
+
     // Resets storage to an empty state.
     // Use this function when you want to clear storage from all the factory-tool generated data and user data.
     // After this operation device must be injected again by using factory tool or developer certificate.
 #ifdef RESET_STORAGE
-    printf("[Simple Cloud Client] Reset storage to an empty state.\n");
-    fcc_status_e delete_status = fcc_storage_delete();
-    if (delete_status != FCC_STATUS_SUCCESS) {
-        printf("[Simple Cloud Client] Failed to delete storage - %d\n", delete_status);
-    }
+    reset_storage();
 #endif
 
     // Deletes existing firmware images from storage.
@@ -113,11 +138,6 @@ int SimpleMbedCloudClient::init() {
         return 1;
     }
 #endif
-    fcc_status = fcc_verify_device_configured_4mbed_cloud();
-    if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[Simple Cloud Client] Device not configured for mbed Cloud - try re-formatting your storage device\n");
-        return 1;
-    }
 
     return 0;
 }
@@ -322,4 +342,26 @@ MbedCloudClientResource* SimpleMbedCloudClient::create_resource(const char *path
     MbedCloudClientResource *resource = new MbedCloudClientResource(this, path, name);
     _resources.push_back(resource);
     return resource;
+}
+
+int SimpleMbedCloudClient::reformat_storage()
+{
+    int reformat_result = -1;
+    printf("[Simple Cloud Client] Autoformatting the storage.\n");
+    if (_bd) {
+        reformat_result = _fs->reformat(_bd);
+        if (reformat_result != 0) {
+            printf("[Simple Cloud Client] Autoformatting failed with error %d\n", reformat_result);
+        }
+    }
+    return reformat_result;
+}
+
+void SimpleMbedCloudClient::reset_storage()
+{
+    printf("[Simple Cloud Client] Reset storage to an empty state.\n");
+    fcc_status_e delete_status = fcc_storage_delete();
+    if (delete_status != FCC_STATUS_SUCCESS) {
+        printf("[Simple Cloud Client] Failed to delete storage - %d\n", delete_status);
+    }
 }

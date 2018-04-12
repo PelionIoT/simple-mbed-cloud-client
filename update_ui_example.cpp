@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// Copyright 2016-2017 ARM Ltd.
+// Copyright 2016-2018 ARM Ltd.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -49,7 +49,6 @@ void update_authorize(int32_t request)
             printf("Firmware download requested\r\n");
             printf("Authorization granted\r\n");
             _client->update_authorize(MbedCloudClient::UpdateRequestDownload);
-
             break;
 
         /* Cloud Client wishes to reboot and apply the new firmware.
@@ -75,10 +74,10 @@ void update_authorize(int32_t request)
 
 void update_progress(uint32_t progress, uint32_t total)
 {
-    uint8_t percent = (uint8_t)((uint64_t)progress * 100 / total);
+    uint8_t percent = progress * 100 / total;
 
 /* only show progress bar if debug trace is disabled */
-#if !defined(MBED_CONF_MBED_TRACE_ENABLE) \
+#if (!defined(MBED_CONF_MBED_TRACE_ENABLE) || MBED_CONF_MBED_TRACE_ENABLE == 0) \
     && !ARM_UC_ALL_TRACE_ENABLE \
     && !ARM_UC_HUB_TRACE_ENABLE
 

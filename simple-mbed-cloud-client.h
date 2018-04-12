@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// Copyright 2016-2017 ARM Ltd.
+// Copyright 2016-2018 ARM Ltd.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ----------------------------------------------------------------------------
-
 
 #ifndef SIMPLEMBEDCLOUDCLIENT_H
 #define SIMPLEMBEDCLOUDCLIENT_H
@@ -35,7 +34,7 @@ class SimpleMbedCloudClient {
 
 public:
 
-    SimpleMbedCloudClient(NetworkInterface *net);
+    SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs);
     ~SimpleMbedCloudClient();
 
     int init();
@@ -54,6 +53,9 @@ public:
     void on_unregistered(Callback<void()> cb);
 
 private:
+    int reformat_storage();
+    void reset_storage();
+
     M2MObjectList                                       _obj_list;
     MbedCloudClient                                     _cloud_client;
     bool                                                _registered;
@@ -62,6 +64,8 @@ private:
     Callback<void(const ConnectorClientEndpointInfo*)>  _registered_cb;
     Callback<void()>                                    _unregistered_cb;
     NetworkInterface *                                  _net;
+    BlockDevice *                                       _bd;
+    FileSystem *                                        _fs;
 };
 
 #endif // SIMPLEMBEDCLOUDCLIENT_H
