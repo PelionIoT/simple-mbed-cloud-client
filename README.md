@@ -54,7 +54,7 @@ This library is a simpler interface to Mbed Cloud Client, making it trivial to e
   
   There are a number of applications that make usage of the Simple Mbed Cloud Client library.
   
-  The Mbed Cloud [Quick-Start](https://cloud.test.mbed.com/quick-start) is an initiative to support Mbed Partner's platforms while delivering a great User Experience to Mbed Developers.  
+  The Mbed Cloud [Quick-Start](https://cloud.mbed.com/quick-start) is an initiative to support Mbed Partner's platforms while delivering a great User Experience to Mbed Developers.  
 
 ### Known issues
 
