@@ -46,7 +46,7 @@ public:
     void error(int error_code);
     bool is_client_registered();
     bool is_register_called();
-    void register_and_connect();
+    bool register_and_connect();
     MbedCloudClient& get_cloud_client();
     MbedCloudClientResource* create_resource(const char *path, const char *name);
     void on_registered(Callback<void(const ConnectorClientEndpointInfo*)> cb);
