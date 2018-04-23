@@ -50,6 +50,7 @@ BlockDevice *arm_uc_blockdevice;
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs) :
     _registered(false),
     _register_called(false),
+    _register_and_connect_called(false),
     _registered_cb(NULL),
     _unregistered_cb(NULL),
     _net(net),
@@ -143,6 +144,8 @@ int SimpleMbedCloudClient::init() {
 }
 
 bool SimpleMbedCloudClient::call_register() {
+    // need to unregister first before calling this function again
+    if (_register_called) return false;
 
     _cloud_client.on_registered(this, &SimpleMbedCloudClient::client_registered);
     _cloud_client.on_unregistered(this, &SimpleMbedCloudClient::client_unregistered);
@@ -301,29 +304,34 @@ bool SimpleMbedCloudClient::is_register_called() {
     return _register_called;
 }
 
-void SimpleMbedCloudClient::register_and_connect() {
-    // TODO this might not work if called more than once...
+bool SimpleMbedCloudClient::register_and_connect() {
+    if (_register_and_connect_called) return false;
+
     mcc_resource_def resourceDef;
 
     // TODO clean up
     for (int i = 0; i < _resources.size(); i++) {
         _resources[i]->get_data(&resourceDef);
         M2MResource *res = add_resource(&_obj_list, resourceDef.object_id, resourceDef.instance_id,
-                     resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
-                     (M2MBase::Operation)resourceDef.method_mask, resourceDef.value.c_str(), resourceDef.observable,
-                     resourceDef.put_callback, resourceDef.post_callback, resourceDef.notification_callback);
+                    resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
+                    (M2MBase::Operation)resourceDef.method_mask, resourceDef.value.c_str(), resourceDef.observable,
+                    resourceDef.put_callback, resourceDef.post_callback, resourceDef.notification_callback);
         _resources[i]->set_m2m_resource(res);
     }
     _cloud_client.add_objects(_obj_list);
 
+    _register_and_connect_called = true;
+
     // Start registering to the cloud.
-    call_register();
+    bool retval = call_register();
 
     // Print memory statistics if the MBED_HEAP_STATS_ENABLED is defined.
     #ifdef MBED_HEAP_STATS_ENABLED
         printf("[Simple Cloud Client] Register being called\r\n");
         heap_stats();
     #endif
+
+    return retval;
 }
 
 void SimpleMbedCloudClient::on_registered(Callback<void(const ConnectorClientEndpointInfo*)> cb) {

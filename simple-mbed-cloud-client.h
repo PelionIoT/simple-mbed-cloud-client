@@ -60,6 +60,7 @@ private:
     MbedCloudClient                                     _cloud_client;
     bool                                                _registered;
     bool                                                _register_called;
+    bool                                                _register_and_connect_called;
     Vector<MbedCloudClientResource*>                    _resources;
     Callback<void(const ConnectorClientEndpointInfo*)>  _registered_cb;
     Callback<void()>                                    _unregistered_cb;
