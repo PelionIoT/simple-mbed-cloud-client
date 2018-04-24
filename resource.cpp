@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// Copyright 2016-2017 ARM Ltd.
+// Copyright 2016-2018 ARM Ltd.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -68,7 +68,7 @@ M2MResource* add_resource(M2MObjectList *list, uint16_t object_id, uint16_t inst
     snprintf(name, 6, "%d", resource_id);
     resource = object_instance->create_dynamic_resource(name, resource_type, data_type, observable);
     //Set value if available.
-    if (value != "") {
+    if (strcmp(value, "") != 0) {
         resource->set_value((const unsigned char*)value, strlen(value));
     }
     //Set allowed operations for accessing the resource.
@@ -77,14 +77,18 @@ M2MResource* add_resource(M2MObjectList *list, uint16_t object_id, uint16_t inst
         resource->set_notification_delivery_status_cb(notification_delivery_status_cb_thunk, notification_status_cb);
     }
 
+    if (put_cb) {
+        resource->set_value_updated_function(
+            FP1<void, const char*>(put_cb,
+                (void (Callback<void(const char*)>::*)(const char*))
+                    &Callback<void(const char*)>::call));
+    }
 
-    resource->set_value_updated_function(
-        FP1<void, const char*>(put_cb,
-            (void (Callback<void(const char*)>::*)(const char*))
-                &Callback<void(const char*)>::call));
-    resource->set_execute_function(FP1<void, void*>(post_cb,
-        (void (Callback<void(void*)>::*)(void*))
-            &Callback<void(void*)>::call));
+    if (post_cb) {
+        resource->set_execute_function(FP1<void, void*>(post_cb,
+            (void (Callback<void(void*)>::*)(void*))
+                &Callback<void(void*)>::call));
+    }
 
     return resource;
 }

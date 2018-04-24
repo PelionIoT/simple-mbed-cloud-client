@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// Copyright 2016-2017 ARM Ltd.
+// Copyright 2016-2018 ARM Ltd.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -16,26 +16,16 @@
 // limitations under the License.
 // ----------------------------------------------------------------------------
 
-#ifdef MBED_CLOUD_CLIENT_USER_CONFIG_FILE
-#include MBED_CLOUD_CLIENT_USER_CONFIG_FILE
-#endif
+#ifndef PAL_HEADER_SOTP_FS
+#define PAL_HEADER_SOTP_FS
 
-#include <stdint.h>
+#define PAL_USE_HW_ROT 0
+#define PAL_USE_HW_RTC 0
+#define PAL_USE_HW_TRNG 1
+#define PAL_SIMULATOR_FLASH_OVER_FILE_SYSTEM 0
+#define PAL_USE_INTERNAL_FLASH 1
+#define PAL_USE_SECURE_TIME 1
 
-#ifdef MBED_CLOUD_DEV_UPDATE_ID
-const uint8_t arm_uc_vendor_id[16] = { "dev_manufacturer" };
-const uint16_t arm_uc_vendor_id_size = sizeof(arm_uc_vendor_id);
+#include "mbedOS_default.h"
 
-const uint8_t arm_uc_class_id[16]  = { "dev_model_number" };
-const uint16_t arm_uc_class_id_size = sizeof(arm_uc_class_id);
-#endif
-
-#ifdef MBED_CLOUD_DEV_UPDATE_CERT
-const uint8_t arm_uc_default_fingerprint[32] = { 0 };
-const uint16_t arm_uc_default_fingerprint_size =
-    sizeof(arm_uc_default_fingerprint);
-
-const uint8_t arm_uc_default_certificate[1] = { 0 };
-const uint16_t arm_uc_default_certificate_size =
-    sizeof(arm_uc_default_certificate);
-#endif
+#endif //PAL_HEADER_SOTP_FS

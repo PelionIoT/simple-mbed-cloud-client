@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// Copyright 2016-2017 ARM Ltd.
+// Copyright 2016-2018 ARM Ltd.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -27,6 +27,7 @@
 #include "mbed-client/m2mvector.h"
 #include "mbed_cloud_client_resource.h"
 #include "factory_configurator_client.h"
+#include "update_client_hub.h"
 
 #ifdef MBED_CLOUD_CLIENT_USER_CONFIG_FILE
 #include MBED_CLOUD_CLIENT_USER_CONFIG_FILE
@@ -40,12 +41,23 @@
 #include "memory_tests.h"
 #endif
 
+#ifndef DEFAULT_FIRMWARE_PATH
 #define DEFAULT_FIRMWARE_PATH       "/sd/firmware"
+#endif
 
-SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net) :
+BlockDevice *arm_uc_blockdevice;
+
+SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs) :
     _registered(false),
     _register_called(false),
-    net(net) {
+    _register_and_connect_called(false),
+    _registered_cb(NULL),
+    _unregistered_cb(NULL),
+    _net(net),
+    _bd(bd),
+    _fs(fs)
+{
+    arm_uc_blockdevice = bd;
 }
 
 SimpleMbedCloudClient::~SimpleMbedCloudClient() {
@@ -55,22 +67,50 @@ SimpleMbedCloudClient::~SimpleMbedCloudClient() {
 }
 
 int SimpleMbedCloudClient::init() {
+    // Requires DAPLink 245+ (https://github.com/ARMmbed/DAPLink/pull/364)
+    // Older versions: workaround to prevent possible deletion of credentials:
+    wait(1);
+
+    extern const uint8_t arm_uc_vendor_id[];
+    extern const uint16_t arm_uc_vendor_id_size;
+    extern const uint8_t arm_uc_class_id[];
+    extern const uint16_t arm_uc_class_id_size;
+
+    ARM_UC_SetVendorId(arm_uc_vendor_id, arm_uc_vendor_id_size);
+    ARM_UC_SetClassId(arm_uc_class_id, arm_uc_class_id_size);
+
     // Initialize the FCC
     fcc_status_e fcc_status = fcc_init();
     if(fcc_status != FCC_STATUS_SUCCESS) {
-        printf("fcc_init failed with status %d! - exit\n", fcc_status);
+        printf("[Simple Cloud Client] Factory Client Configuration failed with status %d. \n", fcc_status);
         return 1;
     }
+
+    // This is designed to simplify user-experience by auto-formatting the
+    // primary storage if no valid certificates exist.
+    // This should never be used for any kind of production devices.
+#if defined(MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR) && MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR == 1
+    fcc_status = fcc_verify_device_configured_4mbed_cloud();
+    if (fcc_status != FCC_STATUS_SUCCESS) {
+        if (reformat_storage() != 0) {
+            return 1;
+        }
+
+        reset_storage();
+    }
+#else
+    fcc_status = fcc_verify_device_configured_4mbed_cloud();
+    if (fcc_status != FCC_STATUS_SUCCESS) {
+        printf("[Simple Cloud Client] Device not configured for mbed Cloud - try re-formatting your storage device or set MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR to 1\n");
+        return 1;
+    }
+#endif
 
     // Resets storage to an empty state.
     // Use this function when you want to clear storage from all the factory-tool generated data and user data.
     // After this operation device must be injected again by using factory tool or developer certificate.
 #ifdef RESET_STORAGE
-    printf("Reset storage to an empty state.\n");
-    fcc_status_e delete_status = fcc_storage_delete();
-    if (delete_status != FCC_STATUS_SUCCESS) {
-        printf("Failed to delete storage - %d\n", delete_status);
-    }
+    reset_storage();
 #endif
 
     // Deletes existing firmware images from storage.
@@ -80,43 +120,41 @@ int SimpleMbedCloudClient::init() {
     palStatus_t status = PAL_SUCCESS;
     status = pal_fsRmFiles(DEFAULT_FIRMWARE_PATH);
     if(status == PAL_SUCCESS) {
-        printf("Firmware storage erased.\n");
+        printf("[Simple Cloud Client] Firmware storage erased.\n");
     } else if (status == PAL_ERR_FS_NO_PATH) {
-        printf("Firmware path not found/does not exist.\n");
+        printf("[Simple Cloud Client] Firmware path not found/does not exist.\n");
     } else {
-        printf("Firmware storage erasing failed with %" PRId32, status);
+        printf("[Simple Cloud Client] Firmware storage erasing failed with %" PRId32, status);
         return 1;
     }
 #endif
 
 #if MBED_CONF_APP_DEVELOPER_MODE == 1
-    printf("Start developer flow\n");
+    printf("[Simple Cloud Client] Starting developer flow\n");
     fcc_status = fcc_developer_flow();
     if (fcc_status == FCC_STATUS_KCM_FILE_EXIST_ERROR) {
-        printf("Developer credentials already exist\n");
+        printf("[Simple Cloud Client] Developer credentials already exist\n");
     } else if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("Failed to load developer credentials - exit\n");
+        printf("[Simple Cloud Client] Failed to load developer credentials - is the storage device active and accessible?\n");
         return 1;
     }
 #endif
-    fcc_status = fcc_verify_device_configured_4mbed_cloud();
-    if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("Device not configured for mbed Cloud - exit\n");
-        return 1;
-    }
+
+    return 0;
 }
 
 bool SimpleMbedCloudClient::call_register() {
+    // need to unregister first before calling this function again
+    if (_register_called) return false;
 
     _cloud_client.on_registered(this, &SimpleMbedCloudClient::client_registered);
     _cloud_client.on_unregistered(this, &SimpleMbedCloudClient::client_unregistered);
     _cloud_client.on_error(this, &SimpleMbedCloudClient::error);
 
-    printf("Connecting...\n");
-    bool setup = _cloud_client.setup(net);
+    bool setup = _cloud_client.setup(_net);
     _register_called = true;
     if (!setup) {
-        printf("Client setup failed\n");
+        printf("[Simple Cloud Client] Client setup failed\n");
         return false;
     }
 
@@ -143,18 +181,11 @@ void SimpleMbedCloudClient::register_update() {
 
 void SimpleMbedCloudClient::client_registered() {
     _registered = true;
-    printf("\nClient registered\n\n");
     static const ConnectorClientEndpointInfo* endpoint = NULL;
     if (endpoint == NULL) {
         endpoint = _cloud_client.endpoint_info();
-        if (endpoint) {
-
-#if MBED_CONF_APP_DEVELOPER_MODE == 1
-            printf("Endpoint Name: %s\r\n", endpoint->internal_endpoint_name.c_str());
-#else
-            printf("Endpoint Name: %s\r\n", endpoint->endpoint_name.c_str());
-#endif
-            printf("Device Id: %s\r\n", endpoint->internal_endpoint_name.c_str());
+        if (endpoint && _registered_cb) {
+            _registered_cb(endpoint);
         }
     }
 #ifdef MBED_HEAP_STATS_ENABLED
@@ -165,7 +196,11 @@ void SimpleMbedCloudClient::client_registered() {
 void SimpleMbedCloudClient::client_unregistered() {
     _registered = false;
     _register_called = false;
-    printf("\nClient unregistered - Exiting application\n\n");
+
+    if (_unregistered_cb) {
+        _unregistered_cb();
+    }
+
 #ifdef MBED_HEAP_STATS_ENABLED
     heap_stats();
 #endif
@@ -254,9 +289,11 @@ void SimpleMbedCloudClient::error(int error_code) {
         default:
             error = "UNKNOWN";
     }
-    printf("\nError occurred : %s\r\n", error);
-    printf("Error code : %d\r\n\n", error_code);
-    printf("Error details : %s\r\n\n",_cloud_client.error_description());
+
+    // @todo: move this into user space
+    printf("\n[Simple Cloud Client] Error occurred : %s\n", error);
+    printf("[Simple Cloud Client] Error code : %d\n", error_code);
+    printf("[Simple Cloud Client] Error details : %s\n",_cloud_client.error_description());
 }
 
 bool SimpleMbedCloudClient::is_client_registered() {
@@ -267,29 +304,41 @@ bool SimpleMbedCloudClient::is_register_called() {
     return _register_called;
 }
 
-void SimpleMbedCloudClient::register_and_connect() {
-    // TODO this might not work if called more than once...
+bool SimpleMbedCloudClient::register_and_connect() {
+    if (_register_and_connect_called) return false;
+
     mcc_resource_def resourceDef;
 
-    // TODO clean up
-    for (unsigned int i = 0; i < _resources.size(); i++) {
+    for (int i = 0; i < _resources.size(); i++) {
         _resources[i]->get_data(&resourceDef);
         M2MResource *res = add_resource(&_obj_list, resourceDef.object_id, resourceDef.instance_id,
-                     resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
-                     (M2MBase::Operation)resourceDef.method_mask, resourceDef.value.c_str(), resourceDef.observable,
-                     resourceDef.put_callback, resourceDef.post_callback, resourceDef.notification_callback);
-        _resources[i]->set_resource(res);
+                    resourceDef.resource_id, resourceDef.name.c_str(), M2MResourceInstance::STRING,
+                    (M2MBase::Operation)resourceDef.method_mask, resourceDef.value.c_str(), resourceDef.observable,
+                    resourceDef.put_callback, resourceDef.post_callback, resourceDef.notification_callback);
+        _resources[i]->set_m2m_resource(res);
     }
     _cloud_client.add_objects(_obj_list);
 
+    _register_and_connect_called = true;
+
     // Start registering to the cloud.
-    call_register();
+    bool retval = call_register();
 
     // Print memory statistics if the MBED_HEAP_STATS_ENABLED is defined.
     #ifdef MBED_HEAP_STATS_ENABLED
-        printf("Register being called\r\n");
+        printf("[Simple Cloud Client] Register being called\r\n");
         heap_stats();
     #endif
+
+    return retval;
+}
+
+void SimpleMbedCloudClient::on_registered(Callback<void(const ConnectorClientEndpointInfo*)> cb) {
+    _registered_cb = cb;
+}
+
+void SimpleMbedCloudClient::on_unregistered(Callback<void()> cb) {
+    _unregistered_cb = cb;
 }
 
 MbedCloudClient& SimpleMbedCloudClient::get_cloud_client() {
@@ -300,4 +349,26 @@ MbedCloudClientResource* SimpleMbedCloudClient::create_resource(const char *path
     MbedCloudClientResource *resource = new MbedCloudClientResource(this, path, name);
     _resources.push_back(resource);
     return resource;
+}
+
+int SimpleMbedCloudClient::reformat_storage()
+{
+    int reformat_result = -1;
+    printf("[Simple Cloud Client] Autoformatting the storage.\n");
+    if (_bd) {
+        reformat_result = _fs->reformat(_bd);
+        if (reformat_result != 0) {
+            printf("[Simple Cloud Client] Autoformatting failed with error %d\n", reformat_result);
+        }
+    }
+    return reformat_result;
+}
+
+void SimpleMbedCloudClient::reset_storage()
+{
+    printf("[Simple Cloud Client] Reset storage to an empty state.\n");
+    fcc_status_e delete_status = fcc_storage_delete();
+    if (delete_status != FCC_STATUS_SUCCESS) {
+        printf("[Simple Cloud Client] Failed to delete storage - %d\n", delete_status);
+    }
 }
