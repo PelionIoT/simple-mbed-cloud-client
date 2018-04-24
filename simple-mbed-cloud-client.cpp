@@ -309,7 +309,6 @@ bool SimpleMbedCloudClient::register_and_connect() {
 
     mcc_resource_def resourceDef;
 
-    // TODO clean up
     for (int i = 0; i < _resources.size(); i++) {
         _resources[i]->get_data(&resourceDef);
         M2MResource *res = add_resource(&_obj_list, resourceDef.object_id, resourceDef.instance_id,
