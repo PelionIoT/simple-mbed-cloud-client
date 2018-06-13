@@ -55,6 +55,7 @@ public:
 private:
     int reformat_storage();
     void reset_storage();
+    int mount_storage();
 
     M2MObjectList                                       _obj_list;
     MbedCloudClient                                     _cloud_client;
