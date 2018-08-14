@@ -28,6 +28,8 @@
 #include "mbed_cloud_client_resource.h"
 #include "factory_configurator_client.h"
 #include "update_client_hub.h"
+#include "mbed-trace/mbed_trace.h"
+#include "mbed-trace-helper.h"
 
 #ifdef MBED_CLOUD_CLIENT_USER_CONFIG_FILE
 #include MBED_CLOUD_CLIENT_USER_CONFIG_FILE
@@ -78,6 +80,18 @@ int SimpleMbedCloudClient::init() {
 
     ARM_UC_SetVendorId(arm_uc_vendor_id, arm_uc_vendor_id_size);
     ARM_UC_SetClassId(arm_uc_class_id, arm_uc_class_id_size);
+
+    // Initialize Mbed Trace for debugging
+    // Create mutex for tracing to avoid broken lines in logs
+    if(!mbed_trace_helper_create_mutex()) {
+        printf("ERROR - Mutex creation for mbed_trace failed!\n");
+        return 1;
+    }
+
+    // Initialize mbed trace
+    (void) mbed_trace_init();
+    mbed_trace_mutex_wait_function_set(mbed_trace_helper_mutex_wait);
+    mbed_trace_mutex_release_function_set(mbed_trace_helper_mutex_release);
 
     // Initialize the FCC
     fcc_status_e fcc_status = fcc_init();
