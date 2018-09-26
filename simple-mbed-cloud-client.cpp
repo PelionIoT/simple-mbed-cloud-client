@@ -96,7 +96,7 @@ int SimpleMbedCloudClient::init() {
     // Initialize the FCC
     fcc_status_e fcc_status = fcc_init();
     if(fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[Simple Cloud Client] Factory Client Configuration failed with status %d. \n", fcc_status);
+        printf("[SMCC] Factory Client Configuration failed with status %d. \n", fcc_status);
         return 1;
     }
 
@@ -105,7 +105,7 @@ int SimpleMbedCloudClient::init() {
     if (fcc_status == FCC_STATUS_KCM_STORAGE_ERROR) {
         int mount_result = mount_storage();
         if (mount_result != 0) {
-            printf("[Simple Cloud Client] Failed to mount file system with status %d. \n", mount_result);
+            printf("[SMCC] Failed to mount file system with status %d. \n", mount_result);
 #if !defined(MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR) || MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR == 0
             return 1;
 #endif
@@ -128,7 +128,7 @@ int SimpleMbedCloudClient::init() {
     }
 #else
     if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[Simple Cloud Client] Device not configured for mbed Cloud - try re-formatting your storage device or set MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR to 1\n");
+        printf("[SMCC] Device not configured for mbed Cloud - try re-formatting your storage device or set MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR to 1\n");
         return 1;
     }
 #endif
@@ -147,22 +147,22 @@ int SimpleMbedCloudClient::init() {
     palStatus_t status = PAL_SUCCESS;
     status = pal_fsRmFiles(DEFAULT_FIRMWARE_PATH);
     if(status == PAL_SUCCESS) {
-        printf("[Simple Cloud Client] Firmware storage erased.\n");
+        printf("[SMCC] Firmware storage erased.\n");
     } else if (status == PAL_ERR_FS_NO_PATH) {
-        printf("[Simple Cloud Client] Firmware path not found/does not exist.\n");
+        printf("[SMCC] Firmware path not found/does not exist.\n");
     } else {
-        printf("[Simple Cloud Client] Firmware storage erasing failed with %" PRId32, status);
+        printf("[SMCC] Firmware storage erasing failed with %" PRId32, status);
         return 1;
     }
 #endif
 
 #if MBED_CONF_APP_DEVELOPER_MODE == 1
-    printf("[Simple Cloud Client] Starting developer flow\n");
+    printf("[SMCC] Starting developer flow\n");
     fcc_status = fcc_developer_flow();
     if (fcc_status == FCC_STATUS_KCM_FILE_EXIST_ERROR) {
-        printf("[Simple Cloud Client] Developer credentials already exist\n");
+        printf("[SMCC] Developer credentials already exist\n");
     } else if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[Simple Cloud Client] Failed to load developer credentials - is the storage device active and accessible?\n");
+        printf("[SMCC] Failed to load developer credentials - is the storage device active and accessible?\n");
         return 1;
     }
 #endif
@@ -181,7 +181,7 @@ bool SimpleMbedCloudClient::call_register() {
     bool setup = _cloud_client.setup(_net);
     _register_called = true;
     if (!setup) {
-        printf("[Simple Cloud Client] Client setup failed\n");
+        printf("[SMCC] Client setup failed\n");
         return false;
     }
 
@@ -318,9 +318,9 @@ void SimpleMbedCloudClient::error(int error_code) {
     }
 
     // @todo: move this into user space
-    printf("\n[Simple Cloud Client] Error occurred : %s\n", error);
-    printf("[Simple Cloud Client] Error code : %d\n", error_code);
-    printf("[Simple Cloud Client] Error details : %s\n",_cloud_client.error_description());
+    printf("\n[SMCC] Error occurred : %s\n", error);
+    printf("[SMCC] Error code : %d\n", error_code);
+    printf("[SMCC] Error details : %s\n",_cloud_client.error_description());
 }
 
 bool SimpleMbedCloudClient::is_client_registered() {
@@ -353,7 +353,7 @@ bool SimpleMbedCloudClient::register_and_connect() {
 
     // Print memory statistics if the MBED_HEAP_STATS_ENABLED is defined.
     #ifdef MBED_HEAP_STATS_ENABLED
-        printf("[Simple Cloud Client] Register being called\r\n");
+        printf("[SMCC] Register being called\r\n");
         heap_stats();
     #endif
 
@@ -381,11 +381,11 @@ MbedCloudClientResource* SimpleMbedCloudClient::create_resource(const char *path
 int SimpleMbedCloudClient::reformat_storage()
 {
     int reformat_result = -1;
-    printf("[Simple Cloud Client] Autoformatting the storage.\n");
+    printf("[SMCC] Autoformatting the storage.\n");
     if (_bd) {
         reformat_result = _fs->reformat(_bd);
         if (reformat_result != 0) {
-            printf("[Simple Cloud Client] Autoformatting failed with error %d\n", reformat_result);
+            printf("[SMCC] Autoformatting failed with error %d\n", reformat_result);
         }
     }
     return reformat_result;
@@ -393,17 +393,17 @@ int SimpleMbedCloudClient::reformat_storage()
 
 void SimpleMbedCloudClient::reset_storage()
 {
-    printf("[Simple Cloud Client] Reset storage to an empty state.\n");
+    printf("[SMCC] Reset storage to an empty state.\n");
     fcc_status_e delete_status = fcc_storage_delete();
     if (delete_status != FCC_STATUS_SUCCESS) {
-        printf("[Simple Cloud Client] Failed to delete storage - %d\n", delete_status);
+        printf("[SMCC] Failed to delete storage - %d\n", delete_status);
     }
 }
 
 int SimpleMbedCloudClient::mount_storage()
 {
     int mount_result = -1;
-    printf("[Simple Cloud Client] Initializing storage.\n");
+    printf("[SMCC] Initializing storage.\n");
     if (_bd) {
         mount_result = _fs->mount(_bd);
     }

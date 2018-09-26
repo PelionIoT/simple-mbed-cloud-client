@@ -20,6 +20,7 @@ from mbed_host_tests import BaseHostTest
 from mbed_cloud.device_directory import DeviceDirectoryAPI
 import os
 import time
+import subprocess
 
 DEFAULT_CYCLE_PERIOD = 1.0
 
@@ -96,12 +97,26 @@ class SDKTests(BaseHostTest):
         self.register_callback('fail_test', self._callback_fail_test)
         
         # Setup API config
-        api_key_val = os.environ.get("MBED_CLOUD_API_KEY")            
+        try:
+            result = subprocess.check_output(["mbed", "config", "-G", "MBED_CLOUD_SDK_CONFIG"], \
+                                              stderr=subprocess.STDOUT)
+        except Exception, e:
+            print "Error: MBED_CLOUD_SDK_CONFIG global config is not set: " + str(e)
+            return -1
+
+        result = str(result).split(' ')
+        if result[1] == "No":
+            print "Error: MBED_CLOUD_SDK_CONFIG global config is not set."
+            return -1
+
+        # Get API KEY and remove LF char if included
+        api_key_val = str(result[1]).rstrip()
+        print "MBED_CLOUD_SDK_CONFIG: " + api_key_val 
+
         api_config = {"api_key" : api_key_val, "host" : "https://api.us-east-1.mbedcloud.com"}
         
         # Instantiate Device API
         self.deviceApi = DeviceDirectoryAPI(api_config)
-        
         
     def result(self):
         return self.__result
