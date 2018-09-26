@@ -40,11 +40,11 @@ void smcc_register(void) {
     nsapi_error_t status = net->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
 #elif MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
     CellularBase *net = CellularBase::get_default_instance();
-    ccellular->set_sim_pin(MBED_CONF_NSAPI_DEFAULT_CELLULAR_SIM_PIN);
-    cellular->set_credentials(MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN, MBED_CONF_NSAPI_DEFAULT_CELLULAR_USERNAME, MBED_CONF_NSAPI_DEFAULT_CELLULAR_PASSWORD);
+    net->set_sim_pin(MBED_CONF_NSAPI_DEFAULT_CELLULAR_SIM_PIN);
+    net->set_credentials(MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN, MBED_CONF_NSAPI_DEFAULT_CELLULAR_USERNAME, MBED_CONF_NSAPI_DEFAULT_CELLULAR_PASSWORD);
     nsapi_error_t status = net->connect();
 #elif MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == MESH
-    MeshInterface *net = MeshInterface::get_default_instance();;
+    MeshInterface *net = MeshInterface::get_default_instance();
     nsapi_error_t status = net->connect();
 #else
     #error "Default network interface not defined"
