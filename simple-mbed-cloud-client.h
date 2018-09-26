@@ -51,9 +51,9 @@ public:
     MbedCloudClientResource* create_resource(const char *path, const char *name);
     void on_registered(Callback<void(const ConnectorClientEndpointInfo*)> cb);
     void on_unregistered(Callback<void()> cb);
+    int reformat_storage();
 
 private:
-    int reformat_storage();
     void reset_storage();
     int mount_storage();
 
