@@ -98,20 +98,20 @@ class SDKTests(BaseHostTest):
         
         # Setup API config
         try:
-            result = subprocess.check_output(["mbed", "config", "-G", "MBED_CLOUD_SDK_CONFIG"], \
+            result = subprocess.check_output(["mbed", "config", "-G", "CLOUD_SDK_API_KEY"], \
                                               stderr=subprocess.STDOUT)
         except Exception, e:
-            print "Error: MBED_CLOUD_SDK_CONFIG global config is not set: " + str(e)
+            print "Error: CLOUD_SDK_API_KEY global config is not set: " + str(e)
             return -1
 
         result = str(result).split(' ')
         if result[1] == "No":
-            print "Error: MBED_CLOUD_SDK_CONFIG global config is not set."
+            print "Error: CLOUD_SDK_API_KEY global config is not set."
             return -1
 
         # Get API KEY and remove LF char if included
         api_key_val = str(result[1]).rstrip()
-        print "MBED_CLOUD_SDK_CONFIG: " + api_key_val 
+        print "CLOUD_SDK_API_KEY: " + api_key_val 
 
         api_config = {"api_key" : api_key_val, "host" : "https://api.us-east-1.mbedcloud.com"}
         
