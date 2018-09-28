@@ -91,6 +91,7 @@ Simple Pelion Client provides Greentea tests to test your porting efforts.
 
    
  4. Compile the tests with the `MBED_TEST_MODE` compilation flag.
+    
     ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile```
 
  5. Run the Simple Pelion Client tests from the application directory:
