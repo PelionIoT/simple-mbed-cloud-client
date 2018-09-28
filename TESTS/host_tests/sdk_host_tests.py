@@ -89,16 +89,24 @@ class SDKTests(BaseHostTest):
     def _callback_device_lwm2m_get_verification(self, key, value, timestamp):
         global deviceID
         
+        # Get resource value from device
         resource_value = self.connectApi.get_resource_value(deviceID, value)
         
+        # Send resource value back to device
         self.send_kv("res_value", resource_value)
     
     def _callback_device_lwm2m_put_verification(self, key, value, timestamp):
         global deviceID
         
-        resource_value = self.connectApi.set_resource_value(deviceID, value, "test1put")
+        # Get resource value from device and increment it
+        resource_value = self.connectApi.get_resource_value(deviceID, value)
+        updated_value = int(resource_value) + 5  
         
-        self.send_kv("res_set", "test1put");
+        # Set new resource value from cloud
+        self.connectApi.set_resource_value(deviceID, value, updated_value)
+
+        # Send new resource value to device for verification.
+        self.send_kv("res_set", updated_value);
 
     def setup(self):
         #Start at iteration 0

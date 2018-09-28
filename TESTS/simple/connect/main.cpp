@@ -93,7 +93,7 @@ void smcc_register(void) {
     MbedCloudClientResource *res_put_test;
     res_put_test = client.create_resource("5000/0/2", "put_resource");
     res_put_test->methods(M2MMethod::PUT | M2MMethod::GET);
-    res_put_test->set_value("test0");
+    res_put_test->set_value(1);
 
     client.on_registered(&registered);
     client.register_and_connect();
@@ -153,6 +153,8 @@ void smcc_register(void) {
 
         // LwM2M tests
         printf("[INFO] Beginning LwM2M resource tests.\r\n");
+        int current_res_value;
+        int updated_res_value;
 
         // Read orignal value of /5000/0/1
         greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
@@ -177,11 +179,17 @@ void smcc_register(void) {
             printf("[INFO] Changed value of LwM2M resource /5000/0/1 is observed correctly. \r\n");
         }
 
-        // Update resource /5000/0/2 from cloud and confirm value is correct on client
+        // Observe resource /5000/0/2 from cloud, add +10, and confirm value is correct on client
         greentea_send_kv("device_lwm2m_put_test", "/5000/0/2");
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
-        TEST_ASSERT_EQUAL_STRING(_value, res_put_test->get_value().c_str());
-        if (strcmp(_value, res_put_test->get_value().c_str()) != 0) {
+
+        // Get current value and updated value
+        updated_res_value = atoi(_value);
+        current_res_value = res_put_test->get_value_int();
+
+        // Ensure current value and updated value are equal
+        TEST_ASSERT_EQUAL(updated_res_value, current_res_value);
+        if (updated_res_value != current_res_value) {
             printf("[ERROR] Wrong value read from device after resource update.\r\n");
             greentea_send_kv("fail_test", 0);
         } else {
