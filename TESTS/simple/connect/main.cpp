@@ -14,7 +14,7 @@ FATFileSystem fs("sd", bd);
 
 static const ConnectorClientEndpointInfo* endpointInfo;
 void registered(const ConnectorClientEndpointInfo *endpoint) {
-    printf("Connected to Mbed Cloud. Device ID: %s\n",
+    printf("[INFO] Connected to Pelion Device Management. Device ID: %s\n",
             endpoint->internal_endpoint_name.c_str());
     endpointInfo = endpoint;
 }
@@ -40,11 +40,11 @@ void smcc_register(void) {
     nsapi_error_t status = net->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
 #elif MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
     CellularBase *net = CellularBase::get_default_instance();
-    ccellular->set_sim_pin(MBED_CONF_NSAPI_DEFAULT_CELLULAR_SIM_PIN);
-    cellular->set_credentials(MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN, MBED_CONF_NSAPI_DEFAULT_CELLULAR_USERNAME, MBED_CONF_NSAPI_DEFAULT_CELLULAR_PASSWORD);
+    net->set_sim_pin(MBED_CONF_NSAPI_DEFAULT_CELLULAR_SIM_PIN);
+    net->set_credentials(MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN, MBED_CONF_NSAPI_DEFAULT_CELLULAR_USERNAME, MBED_CONF_NSAPI_DEFAULT_CELLULAR_PASSWORD);
     nsapi_error_t status = net->connect();
 #elif MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == MESH
-    MeshInterface *net = MeshInterface::get_default_instance();;
+    MeshInterface *net = MeshInterface::get_default_instance();
     nsapi_error_t status = net->connect();
 #else
     #error "Default network interface not defined"
@@ -82,6 +82,18 @@ void smcc_register(void) {
         printf("[ERROR] Simple Mbed Cloud Client failed to initialize.\r\n");
         greentea_send_kv("fail_test", 0);
     }
+
+    //Create LwM2M resources
+    MbedCloudClientResource *res_get_test;
+    res_get_test = client.create_resource("5000/0/1", "get_resource");
+    res_get_test->observable(true);
+    res_get_test->methods(M2MMethod::GET);
+    res_get_test->set_value("test0");
+
+    MbedCloudClientResource *res_put_test;
+    res_put_test = client.create_resource("5000/0/2", "put_resource");
+    res_put_test->methods(M2MMethod::PUT | M2MMethod::GET);
+    res_put_test->set_value(1);
 
     client.on_registered(&registered);
     client.register_and_connect();
@@ -126,7 +138,7 @@ void smcc_register(void) {
         }
 
     } else {
-        printf("Verifying consistent endpoint...\r\n");
+        printf("[INFO] Verifying consistent Device ID...\r\n");
         greentea_send_kv("device_verification", endpointInfo->internal_endpoint_name.c_str());
 
         // Wait for Host Test to verify consistent device ID (blocking here)
@@ -137,6 +149,51 @@ void smcc_register(void) {
             greentea_send_kv("fail_test", 0);
         } else {
             printf("[INFO] Device ID consistent, SOTP and Secure Storage is preserved correctly.\r\n");
+        }
+
+        // LwM2M tests
+        printf("[INFO] Beginning LwM2M resource tests.\r\n");
+        int current_res_value;
+        int updated_res_value;
+
+        // Read orignal value of /5000/0/1
+        greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
+        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
+        TEST_ASSERT_EQUAL_STRING("test0", _value);
+        if (strcmp(_value, "test0") != 0) {
+            printf("[ERROR] Wrong value reported in Pelion DM.\r\n");
+            greentea_send_kv("fail_test", 0);
+        } else {
+            printf("[INFO] Original value of LwM2M resource /5000/0/1 is read correctly. \r\n");
+        }
+
+        // Update resource /5000/0/1 from client and observe value
+        greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
+        res_get_test->set_value("test1");
+        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
+        TEST_ASSERT_EQUAL_STRING("test1", _value);
+        if (strcmp(_value, "test1") != 0) {
+            printf("[ERROR] Wrong value observed from Pelion DM.\r\n");
+            greentea_send_kv("fail_test", 0);
+        } else {
+            printf("[INFO] Changed value of LwM2M resource /5000/0/1 is observed correctly. \r\n");
+        }
+
+        // Observe resource /5000/0/2 from cloud, add +10, and confirm value is correct on client
+        greentea_send_kv("device_lwm2m_put_test", "/5000/0/2");
+        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
+
+        // Get current value and updated value
+        updated_res_value = atoi(_value);
+        current_res_value = res_put_test->get_value_int();
+
+        // Ensure current value and updated value are equal
+        TEST_ASSERT_EQUAL(updated_res_value, current_res_value);
+        if (updated_res_value != current_res_value) {
+            printf("[ERROR] Wrong value read from device after resource update.\r\n");
+            greentea_send_kv("fail_test", 0);
+        } else {
+            printf("[INFO] Value of resource /5000/0/2 successfully changed from the cloud using PUT. \r\n");
         }
     }
 
@@ -150,6 +207,7 @@ void smcc_register(void) {
         }
     } else {
         greentea_send_kv("advance_test", 0);
+        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
     }
 }
 

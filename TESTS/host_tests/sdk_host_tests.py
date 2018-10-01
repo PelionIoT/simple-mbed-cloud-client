@@ -18,6 +18,7 @@
 
 from mbed_host_tests import BaseHostTest
 from mbed_cloud.device_directory import DeviceDirectoryAPI
+from mbed_cloud.connect import ConnectAPI
 import os
 import time
 import subprocess
@@ -28,6 +29,7 @@ class SDKTests(BaseHostTest):
     
     __result = None
     deviceApi = None
+    connectApi = None
     deviceID = None
     iteration = None
     
@@ -83,6 +85,28 @@ class SDKTests(BaseHostTest):
     def _callback_fail_test(self, key, value, timestamp):
         # Test failed. End it.
         self.notify_complete(False)
+        
+    def _callback_device_lwm2m_get_verification(self, key, value, timestamp):
+        global deviceID
+        
+        # Get resource value from device
+        resource_value = self.connectApi.get_resource_value(deviceID, value)
+        
+        # Send resource value back to device
+        self.send_kv("res_value", resource_value)
+    
+    def _callback_device_lwm2m_put_verification(self, key, value, timestamp):
+        global deviceID
+        
+        # Get resource value from device and increment it
+        resource_value = self.connectApi.get_resource_value(deviceID, value)
+        updated_value = int(resource_value) + 5  
+        
+        # Set new resource value from cloud
+        self.connectApi.set_resource_value(deviceID, value, updated_value)
+
+        # Send new resource value to device for verification.
+        self.send_kv("res_set", updated_value);
 
     def setup(self):
         #Start at iteration 0
@@ -95,6 +119,8 @@ class SDKTests(BaseHostTest):
         self.register_callback('device_ready', self._callback_device_ready)
         self.register_callback('device_verification', self._callback_device_verification)
         self.register_callback('fail_test', self._callback_fail_test)
+        self.register_callback('device_lwm2m_get_test', self._callback_device_lwm2m_get_verification)
+        self.register_callback('device_lwm2m_put_test', self._callback_device_lwm2m_put_verification)
         
         # Setup API config
         try:
@@ -115,8 +141,9 @@ class SDKTests(BaseHostTest):
 
         api_config = {"api_key" : api_key_val, "host" : "https://api.us-east-1.mbedcloud.com"}
         
-        # Instantiate Device API
+        # Instantiate Device and Connect API
         self.deviceApi = DeviceDirectoryAPI(api_config)
+        self.connectApi = ConnectAPI(api_config)
         
     def result(self):
         return self.__result
