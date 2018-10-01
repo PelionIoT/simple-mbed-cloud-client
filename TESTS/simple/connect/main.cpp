@@ -19,10 +19,16 @@ void registered(const ConnectorClientEndpointInfo *endpoint) {
     endpointInfo = endpoint;
 }
 
+void post_test_callback(MbedCloudClientResource *resource, const uint8_t *buffer, uint16_t size) {
+    printf("[INFO] POST test callback executed. \r\n");
+    greentea_send_kv("device_lwm2m_post_test_result", 0);
+}
+
 void smcc_register(void) {
 
     int iteration = 0;
     int timeout = 0;
+    int result = -1;
     char _key[20] = { };
     char _value[128] = { };
 
@@ -94,6 +100,11 @@ void smcc_register(void) {
     res_put_test = client.create_resource("5000/0/2", "put_resource");
     res_put_test->methods(M2MMethod::PUT | M2MMethod::GET);
     res_put_test->set_value(1);
+
+    MbedCloudClientResource *res_post_test;
+    res_post_test = client.create_resource("5000/0/3", "post_resource");
+    res_post_test->methods(M2MMethod::POST);
+    res_post_test->attach_post_callback(post_test_callback);
 
     client.on_registered(&registered);
     client.register_and_connect();
@@ -194,6 +205,20 @@ void smcc_register(void) {
             greentea_send_kv("fail_test", 0);
         } else {
             printf("[INFO] Value of resource /5000/0/2 successfully changed from the cloud using PUT. \r\n");
+        }
+
+        printf("[INFO] Executing POST on /5000/0/3 and waiting for callback function.");
+        greentea_send_kv("device_lwm2m_post_test", "/5000/0/3");
+        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
+
+        // Ensure that callback is executed. If not, test fails.
+        result = atoi(_value);
+        TEST_ASSERT_EQUAL(0, result);
+        if (result != 0) {
+            printf("[ERROR] POST callback execution failed on resource /5000/0/3. \r\n");
+            greentea_send_kv("fail_test", 0);
+        } else {
+            printf("[INFO] POST callback executed successfully /5000/0/3 \r\n");
         }
     }
 
