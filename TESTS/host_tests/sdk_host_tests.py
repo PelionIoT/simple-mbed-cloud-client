@@ -107,6 +107,17 @@ class SDKTests(BaseHostTest):
 
         # Send new resource value to device for verification.
         self.send_kv("res_set", updated_value);
+        
+    def _callback_device_lwm2m_post_verification(self, key, value, timestamp):
+        global deviceID
+        
+        # Execute POST function on device
+        resource_value = self.connectApi.execute_resource(deviceID, value)
+        
+    def _callback_device_lwm2m_post_verification_result(self, key, value, timestamp):
+        
+        # Called from callback function on device, POST function working as expected.
+        self.send_kv("post_test_executed", 0)
 
     def setup(self):
         #Start at iteration 0
@@ -121,6 +132,8 @@ class SDKTests(BaseHostTest):
         self.register_callback('fail_test', self._callback_fail_test)
         self.register_callback('device_lwm2m_get_test', self._callback_device_lwm2m_get_verification)
         self.register_callback('device_lwm2m_put_test', self._callback_device_lwm2m_put_verification)
+        self.register_callback('device_lwm2m_post_test', self._callback_device_lwm2m_post_verification)
+        self.register_callback('device_lwm2m_post_test_result', self._callback_device_lwm2m_post_verification_result)
         
         # Setup API config
         try:
