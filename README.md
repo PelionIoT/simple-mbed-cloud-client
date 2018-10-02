@@ -67,7 +67,7 @@ Simple Pelion Client provides Greentea tests to test your porting efforts.
 
 | **Test Name** | **Description** |
 | ------------- | ------------- |
-| `simple-connect` | - Tests that the device successfully registers to Pelion Device Management using the specified storage, SOTP, and connectivity configuration. <br> - Tests that SOTP and the RoT is preserved over a reset and the device connects with a consistent device ID. <br> |
+| `simple-connect` | - Tests that the device successfully registers to Pelion Device Management using the specified storage, SOTP, and connectivity configuration. <br> - Tests that SOTP and the RoT is preserved over a reset and the device connects with a consistent device ID. <br> - Verifies GET, PUT, and POST (callback) LwM2M resource functionality on the device. |
 
 ### Requirements
  Simple Pelion Client tests rely on the Python SDK to test the end to end solution.
