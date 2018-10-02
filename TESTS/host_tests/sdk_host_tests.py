@@ -32,7 +32,6 @@ class SDKTests(BaseHostTest):
     connectApi = None
     deviceID = None
     iteration = None
-    post_executed = False
     
     def test_steps(self):
         # Step 0 set up test
@@ -119,8 +118,6 @@ class SDKTests(BaseHostTest):
         
         # Called from callback function on device, POST function working as expected.
         self.send_kv("post_test_executed", 0)
-        
-        
 
     def setup(self):
         #Start at iteration 0
