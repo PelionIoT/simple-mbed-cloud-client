@@ -83,18 +83,20 @@ Simple Pelion Client provides Greentea tests to test your porting efforts.
    
  2. Include the `mbed_cloud_dev_credentials.c` developer certificate in your application. For detailed instructions [see the documentation](https://cloud.mbed.com/docs/current/connecting/provisioning-development-devices.html#creating-and-downloading-a-developer-certificate).
 
- 3. Set an `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
+ 3. Set a global `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
 
      ```mbed config -G CLOUD_SDK_API_KEY <API_KEY>```
 
      For instructions on how to generate an API key, please [see the documentation](https://cloud.mbed.com/docs/current/integrate-web-app/api-keys.html#generating-an-api-key).
 
    
- 4. You may need to delete your `main.cpp`.
+ 4. Compile the tests with the `MBED_TEST_MODE` compilation flag.
+    
+    ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile```
 
  5. Run the Simple Pelion Client tests from the application directory:
 
-     ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-*```
+     ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v```
 
 ### Troubleshooting
 Below are a list of common issues and fixes for using Simple Pelion Client.
