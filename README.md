@@ -63,11 +63,10 @@ This library is a simpler interface to Pelion Cloud Client, making it trivial to
 
 Simple Pelion Client provides Greentea tests to test your porting efforts.
 
-### Tests
+### Test cases
 
-| **Test Name** | **Description** |
+| **Test case** | **Description** |
 | ------------- | ------------- |
-| `simple-connect` | Test suite name for the following tests. |
 | `Connect to network` | Tests the connection to the network via network interface. |
 | `Format storage` | Tests that a successful storage format occurs and storage is configured correctly. |
 | `Simple Mbed Cloud Client Initialization` | Verifies that SMCC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
