@@ -67,7 +67,16 @@ Simple Pelion Client provides Greentea tests to test your porting efforts.
 
 | **Test Name** | **Description** |
 | ------------- | ------------- |
-| `simple-connect` | - Tests that the device successfully registers to Pelion Device Management using the specified storage, SOTP, and connectivity configuration. <br> - Tests that SOTP and the RoT is preserved over a reset and the device connects with a consistent device ID. <br> - Verifies GET, PUT, and POST (callback) LwM2M resource functionality on the device. |
+| `simple-connect` | Test suite name for the following tests. |
+| `Connect to network` | Tests the connection to the network via network interface. |
+| `Format storage` | Tests that a successful storage format occurs and storage is configured correctly. |
+| `Simple Mbed Cloud Client Initialization` | Verifies that SMCC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
+| `Pelion Device Management Register` | Confirms the device is registered to Pelion from the client. |
+| `Device registration in Device Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
+| `Consistent Identity` | Confirms that the device identity is preserved over a device reset, confirming that Root of Trust is stored in SOTP correctly. |
+| `LwM2M GET Test` | Confirms that Pelion can perform a GET request on an LwM2M resource, and observe the value changing. |
+| `LwM2M PUT Test` | Confirms that Pelion can perform a PUT request on an LwM2M resource by setting a new value. |
+| `LwM2M POST Test` | Confirms that Pelion can execute a POST on an LwM2M resource and the callback function on the device is called. |
 
 ### Requirements
  Simple Pelion Client tests rely on the Python SDK to test the end to end solution.

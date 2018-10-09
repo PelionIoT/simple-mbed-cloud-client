@@ -37,55 +37,72 @@ void smcc_register(void) {
 
     iteration = atoi(_value);
 
+    // Start network connection test.
+    GREENTEA_TESTCASE_START("Connect to network");
+    printf("[INFO] Attempting to connect to network.\r\n");
+
     // Connection definition.
 #if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == ETHERNET
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    nsapi_error_t status = net->connect();
+    nsapi_error_t net_status = net->connect();
 #elif MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == WIFI
     WiFiInterface *net = WiFiInterface::get_default_instance();
-    nsapi_error_t status = net->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
+    nsapi_error_t net_status = net->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
 #elif MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
     CellularBase *net = CellularBase::get_default_instance();
     net->set_sim_pin(MBED_CONF_NSAPI_DEFAULT_CELLULAR_SIM_PIN);
     net->set_credentials(MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN, MBED_CONF_NSAPI_DEFAULT_CELLULAR_USERNAME, MBED_CONF_NSAPI_DEFAULT_CELLULAR_PASSWORD);
-    nsapi_error_t status = net->connect();
+    nsapi_error_t net_status = net->connect();
 #elif MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == MESH
     MeshInterface *net = MeshInterface::get_default_instance();
-    nsapi_error_t status = net->connect();
+    nsapi_error_t net_status = net->connect();
 #else
     #error "Default network interface not defined"
 #endif
 
-    // Must have IP address.
-    TEST_ASSERT_NOT_EQUAL(net->get_ip_address(), NULL);
-    if (net->get_ip_address() == NULL) {
-        printf("[ERROR] No IP address obtained from network.\r\n");
-        greentea_send_kv("fail_test", 0);
-    }
+    GREENTEA_TESTCASE_FINISH("Connect to network", (net_status == 0), (net_status != 0));
 
-    // Connection must be successful.
-    TEST_ASSERT_EQUAL(status, 0);
-    if (status == 0 && net->get_ip_address() != NULL) {
-        printf("[INFO] Connected to network successfully. IP address: %s\n", net->get_ip_address());
+    // Report status to console.
+    if (net_status != 0) {
+        printf("[ERROR] Device failed to connect to network.\r\n");
+        // End the test early, cannot continue without network connection.
+        greentea_send_kv("fail_test", 0);
     } else {
-        printf("[ERROR] Failed to connect to network.\r\n");
-        greentea_send_kv("fail_test", 0);
+        printf("[INFO] Connected to network successfully. IP address: %s\n", net->get_ip_address());
     }
 
+    // Instantiate SimpleMbedCloudClient.
     SimpleMbedCloudClient client(net, bd, &fs);
 
+    // This must be done on the first iteration to ensure that we can test writing of new credentials. It may
+    // happen twice if the reset storage flag is set to 1.
     if (iteration == 0) {
+
         printf("[INFO] Resetting storage to a clean state for test.\n");
-        client.reformat_storage();
+
+        GREENTEA_TESTCASE_START("Format storage");
+        int storage_status = client.reformat_storage();
+        GREENTEA_TESTCASE_FINISH("Format storage", (storage_status == 0), (storage_status != 0));
+
+        // Report status to console.
+        if (storage_status == 0) {
+            printf("[INFO] Storage format successful. \r\n");
+        } else {
+            printf("[ERROR] Storage format failed..\r\n");
+        }
     }
 
     // SimpleMbedCloudClient initialization must be successful.
+    GREENTEA_TESTCASE_START("Simple Mbed Cloud Client Initialization");
     int client_status = client.init();
-    TEST_ASSERT_EQUAL(client_status, 0);
+    GREENTEA_TESTCASE_FINISH("Simple Mbed Cloud Client Initialization", (client_status == 0), (client_status != 0));
+
+    // Report status to console.
     if (client_status == 0) {
         printf("[INFO] Simple Mbed Cloud Client initialization successful. \r\n");
     } else {
         printf("[ERROR] Simple Mbed Cloud Client failed to initialize.\r\n");
+        // End the test early, cannot continue without successful cloud client initialization.
         greentea_send_kv("fail_test", 0);
     }
 
@@ -106,7 +123,12 @@ void smcc_register(void) {
     res_post_test->methods(M2MMethod::POST);
     res_post_test->attach_post_callback(post_test_callback);
 
+    // Set client callback to report endpoint name.
     client.on_registered(&registered);
+
+    // Register to Pelion Device Management.
+    GREENTEA_TESTCASE_START("Pelion Device Management Register");
+
     client.register_and_connect();
 
     timeout = 5000;
@@ -115,14 +137,17 @@ void smcc_register(void) {
         wait_ms(1);
     }
 
-    // Registration to Mbed Cloud must be successful.
-    TEST_ASSERT_TRUE(client.is_client_registered());
-    if (!client.is_client_registered()) {
-        printf("[ERROR] Device failed to register.\r\n");
-        greentea_send_kv("fail_test", 0);
-    } else {
+    // Get registration status.
+    bool client_registered = client.is_client_registered();
+    if (client_registered) {
+        client_status = 0;
         printf("[INFO] Simple Mbed Cloud Client successfully registered to Mbed Cloud.\r\n");
+    } else {
+        printf("[ERROR] Device failed to register.\r\n");
+        client_status = -1;
+        greentea_send_kv("fail_test", 0);
     }
+    GREENTEA_TESTCASE_FINISH("Pelion Device Management Register", (client_status == 0), (client_status != 0));
 
     // Allow 500ms for Mbed Cloud to update the device directory.
     timeout = 500;
@@ -132,6 +157,12 @@ void smcc_register(void) {
     }
 
     if (iteration == 0) {
+
+        //Start registration status test
+        GREENTEA_TESTCASE_START("Device registration in Device Directory");
+
+        int registration_status;
+
         // Start host tests with device id
         printf("[INFO] Starting Mbed Cloud verification using Python SDK...\r\n");
         greentea_send_kv("device_api_registration", endpointInfo->internal_endpoint_name.c_str());
@@ -139,87 +170,156 @@ void smcc_register(void) {
         // Wait for Host Test and API response (blocking here)
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 
-        // Ensure the state is 'registered' in the Device Directory
-        TEST_ASSERT_EQUAL_STRING("registered", _value);
-        if (strcmp(_value, "registered") != 0) {
-            printf("[ERROR] Device could not be verified as registered in Device Directory.\r\n");
-            greentea_send_kv("fail_test", 0);
+        if (strcmp(_key, "registration_status") == 0) {
+            if (strcmp(_value, "registered") == 0) {
+                registration_status = 0;
+                printf("[INFO] Device is registered in the Device Directory. \r\n");
+            } else {
+                registration_status = -1;
+                printf("[ERROR] Device could not be verified as registered in Device Directory.\r\n");
+            }
         } else {
-            printf("[INFO] Device is registered in the Device Directory.\r\n");
+            printf("[ERROR] Wrong value reported from test.\r\n");
+            greentea_send_kv("fail_test", 0);
         }
 
+        GREENTEA_TESTCASE_FINISH("Device registration in Device Directory", (registration_status == 0), (registration_status != 0));
+
     } else {
+
+        //Start consistent identity test.
+        GREENTEA_TESTCASE_START("Consistent Identity");
+
+        int identity_status;
+
         printf("[INFO] Verifying consistent Device ID...\r\n");
         greentea_send_kv("device_verification", endpointInfo->internal_endpoint_name.c_str());
 
         // Wait for Host Test to verify consistent device ID (blocking here)
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
-        TEST_ASSERT_EQUAL_STRING("True", _value);
-        if (strcmp(_value, "True") != 0) {
-            printf("[ERROR] Device ID is inconsistent. SOTP and Secure Storage was not preserved.\r\n");
-            greentea_send_kv("fail_test", 0);
+
+        if (strcmp(_key, "verification") == 0) {
+            if (strcmp(_value, "True") == 0) {
+                identity_status = 0;
+                printf("[INFO] Device ID consistent, SOTP and Secure Storage is preserved correctly.\r\n");
+            } else {
+                printf("Value is %s \r\n", _value);
+                identity_status = -1;
+                printf("[ERROR] Device ID is inconsistent. SOTP and Secure Storage was not preserved.\r\n");
+            }
         } else {
-            printf("[INFO] Device ID consistent, SOTP and Secure Storage is preserved correctly.\r\n");
+            printf("[ERROR] Wrong value reported from test.\r\n");
+            greentea_send_kv("fail_test", 0);
         }
+
+        GREENTEA_TESTCASE_FINISH("Consistent Identity", (identity_status == 0), (identity_status != 0));
 
         // LwM2M tests
         printf("[INFO] Beginning LwM2M resource tests.\r\n");
+
+        // GET test
+        GREENTEA_TESTCASE_START("LwM2M GET Test");
+
+        int get_status;
+
+        // Read original value of /5000/0/1
+        greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
+
+        // Wait for Host Test to verify it read the value and send it back.
+        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
+
+        if (strcmp(_key, "res_value") == 0) {
+            if (strcmp(_value, "test0") == 0) {
+                get_status = 0;
+                printf("[INFO] Original value of LwM2M resource /5000/0/1 is read correctly \r\n");
+            } else {
+                get_status = -1;
+                printf("[ERROR] Wrong value reported in Pelion DM.\r\n");
+            }
+        } else {
+            printf("[ERROR] Wrong value reported from test.\r\n");
+            greentea_send_kv("fail_test", 0);
+        }
+
+        // First GET test must be successful first.
+        if (get_status == 0) {
+            // Update resource /5000/0/1 from client and observe value
+            greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
+            res_get_test->set_value("test1");
+
+            // Wait for Host Test to verify it read the value and send it back.
+            greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
+
+            if (strcmp(_key, "res_value") == 0) {
+                if (strcmp(_value, "test1") == 0) {
+                    get_status = 0;
+                    printf("[INFO] Changed value of LwM2M resource /5000/0/1 is observed correctly \r\n");
+                } else {
+                    get_status = -1;
+                    printf("[ERROR] Wrong value observed in Pelion DM.\r\n");
+                }
+            } else {
+                printf("[ERROR] Wrong value reported from test.\r\n");
+                greentea_send_kv("fail_test", 0);
+            }
+        }
+
+        GREENTEA_TESTCASE_FINISH("LwM2M GET Test", (get_status == 0), (get_status != 0));
+
+        // PUT Test
+        GREENTEA_TESTCASE_START("LwM2M PUT Test");
+        int put_status;
         int current_res_value;
         int updated_res_value;
-
-        // Read orignal value of /5000/0/1
-        greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
-        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
-        TEST_ASSERT_EQUAL_STRING("test0", _value);
-        if (strcmp(_value, "test0") != 0) {
-            printf("[ERROR] Wrong value reported in Pelion DM.\r\n");
-            greentea_send_kv("fail_test", 0);
-        } else {
-            printf("[INFO] Original value of LwM2M resource /5000/0/1 is read correctly. \r\n");
-        }
-
-        // Update resource /5000/0/1 from client and observe value
-        greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
-        res_get_test->set_value("test1");
-        greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
-        TEST_ASSERT_EQUAL_STRING("test1", _value);
-        if (strcmp(_value, "test1") != 0) {
-            printf("[ERROR] Wrong value observed from Pelion DM.\r\n");
-            greentea_send_kv("fail_test", 0);
-        } else {
-            printf("[INFO] Changed value of LwM2M resource /5000/0/1 is observed correctly. \r\n");
-        }
 
         // Observe resource /5000/0/2 from cloud, add +10, and confirm value is correct on client
         greentea_send_kv("device_lwm2m_put_test", "/5000/0/2");
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 
-        // Get current value and updated value
-        updated_res_value = atoi(_value);
-        current_res_value = res_put_test->get_value_int();
+        if (strcmp(_key, "res_set") == 0) {
 
-        // Ensure current value and updated value are equal
-        TEST_ASSERT_EQUAL(updated_res_value, current_res_value);
-        if (updated_res_value != current_res_value) {
-            printf("[ERROR] Wrong value read from device after resource update.\r\n");
-            greentea_send_kv("fail_test", 0);
+            // Get updated value from host test.
+            updated_res_value = atoi(_value);
+            // Get current value from resource.
+            current_res_value = res_put_test->get_value_int();
+
+            if (updated_res_value == current_res_value) {
+                put_status = 0;
+                printf("[INFO] Value of resource /5000/0/2 successfully changed from the cloud using PUT. \r\n");
+            } else {
+                put_status = -1;
+                printf("[ERROR] Wrong value read from device after resource update.\r\n");
+            }
         } else {
-            printf("[INFO] Value of resource /5000/0/2 successfully changed from the cloud using PUT. \r\n");
+            printf("[ERROR] Wrong value reported from test.\r\n");
+            greentea_send_kv("fail_test", 0);
         }
+
+        GREENTEA_TESTCASE_FINISH("LwM2M PUT Test", (put_status == 0), (put_status != 0));
+
+        // POST test
+        GREENTEA_TESTCASE_START("LwM2M POST Test");
+        int post_status;
 
         printf("[INFO] Executing POST on /5000/0/3 and waiting for callback function.");
         greentea_send_kv("device_lwm2m_post_test", "/5000/0/3");
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 
-        // Ensure that callback is executed. If not, test fails.
-        result = atoi(_value);
-        TEST_ASSERT_EQUAL(0, result);
-        if (result != 0) {
-            printf("[ERROR] POST callback execution failed on resource /5000/0/3. \r\n");
-            greentea_send_kv("fail_test", 0);
+        if (strcmp(_key, "post_test_executed") == 0) {
+            int result = atoi(_value);
+            if (result == 0) {
+                post_status = 0;
+                printf("[INFO] Callback on resource /5000/0/3 executed successfully.");
+            } else {
+                post_status = -1;
+                printf("[ERROR] Callback on resource /5000/0/3 failed.");
+            }
         } else {
-            printf("[INFO] POST callback executed successfully /5000/0/3 \r\n");
+            printf("[ERROR] Wrong value reported from test.\r\n");
+            greentea_send_kv("fail_test", 0);
         }
+
+        GREENTEA_TESTCASE_FINISH("LwM2M POST Test", (post_status == 0), (post_status != 0));
     }
 
     // Reset on first iteration of test.
