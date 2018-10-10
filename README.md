@@ -33,15 +33,15 @@ This library is a simpler interface to Pelion Cloud Client, making it trivial to
     int main() {
 
         /* Initialize connectivity */
-        <Network> net;
-        net.connect();
+        NetworkInterface *net = NetworkInterface::get_default_instance();
+        net->connect();
 
         /* Initialize storage */
         <Block device> sd(...);
         <Filesystem> fs("sd", &sd);
 
         /* Initialize Simple Pelion Client */
-        SimpleMbedCloudClient client(&net, &sd, &fs);
+        SimpleMbedCloudClient client(net, &sd, &fs);
         client.init();
 
         /* Create resource */
@@ -63,11 +63,19 @@ This library is a simpler interface to Pelion Cloud Client, making it trivial to
 
 Simple Pelion Client provides Greentea tests to test your porting efforts.
 
-### Tests
+### Test cases
 
-| **Test Name** | **Description** |
+| **Test case** | **Description** |
 | ------------- | ------------- |
-| `simple-connect` | - Tests that the device successfully registers to Pelion Device Management using the specified storage, SOTP, and connectivity configuration. <br> - Tests that SOTP and the RoT is preserved over a reset and the device connects with a consistent device ID. <br> |
+| `Connect to network` | Tests the connection to the network via network interface. |
+| `Format storage` | Tests that a successful storage format occurs and storage is configured correctly. |
+| `Simple Mbed Cloud Client Initialization` | Verifies that SMCC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
+| `Pelion Device Management Register` | Confirms the device is registered to Pelion from the client. |
+| `Device registration in Device Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
+| `Consistent Identity` | Confirms that the device identity is preserved over a device reset, confirming that Root of Trust is stored in SOTP correctly. |
+| `LwM2M GET Test` | Confirms that Pelion can perform a GET request on an LwM2M resource, and observe the value changing. |
+| `LwM2M PUT Test` | Confirms that Pelion can perform a PUT request on an LwM2M resource by setting a new value. |
+| `LwM2M POST Test` | Confirms that Pelion can execute a POST on an LwM2M resource and the callback function on the device is called. |
 
 ### Requirements
  Simple Pelion Client tests rely on the Python SDK to test the end to end solution.
@@ -83,18 +91,20 @@ Simple Pelion Client provides Greentea tests to test your porting efforts.
    
  2. Include the `mbed_cloud_dev_credentials.c` developer certificate in your application. For detailed instructions [see the documentation](https://cloud.mbed.com/docs/current/connecting/provisioning-development-devices.html#creating-and-downloading-a-developer-certificate).
 
- 3. Set an `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
+ 3. Set a global `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
 
      ```mbed config -G CLOUD_SDK_API_KEY <API_KEY>```
 
      For instructions on how to generate an API key, please [see the documentation](https://cloud.mbed.com/docs/current/integrate-web-app/api-keys.html#generating-an-api-key).
 
    
- 4. You may need to delete your `main.cpp`.
+ 4. Compile the tests with the `MBED_TEST_MODE` compilation flag.
+    
+    ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile```
 
  5. Run the Simple Pelion Client tests from the application directory:
 
-     ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-*```
+     ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v```
 
 ### Troubleshooting
 Below are a list of common issues and fixes for using Simple Pelion Client.
