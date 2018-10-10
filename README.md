@@ -33,15 +33,15 @@ This library is a simpler interface to Pelion Cloud Client, making it trivial to
     int main() {
 
         /* Initialize connectivity */
-        <Network> net;
-        net.connect();
+        NetworkInterface *net = NetworkInterface::get_default_instance();
+        net->connect();
 
         /* Initialize storage */
         <Block device> sd(...);
         <Filesystem> fs("sd", &sd);
 
         /* Initialize Simple Pelion Client */
-        SimpleMbedCloudClient client(&net, &sd, &fs);
+        SimpleMbedCloudClient client(net, &sd, &fs);
         client.init();
 
         /* Create resource */
