@@ -131,7 +131,7 @@ void smcc_register(void) {
 
     client.register_and_connect();
 
-    timeout = 5000;
+    timeout = 30000;
     while (timeout && !client.is_client_registered()) {
         timeout--;
         wait_ms(1);
@@ -149,8 +149,8 @@ void smcc_register(void) {
     }
     GREENTEA_TESTCASE_FINISH("Pelion Device Management Register", (client_status == 0), (client_status != 0));
 
-    // Allow 500ms for Mbed Cloud to update the device directory.
-    timeout = 500;
+    // Allow 5000ms for Mbed Cloud to update the device directory.
+    timeout = 5000;
     while (timeout) {
         timeout--;
         wait_ms(1);
