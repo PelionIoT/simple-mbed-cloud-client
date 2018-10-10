@@ -221,6 +221,9 @@ void smcc_register(void) {
                 get_status = -1;
                 printf("[ERROR] Wrong value reported in Pelion DM.\r\n");
             }
+        } else if (strcmp(_key, "timeout") == 0) {
+            get_status = -1;
+            printf("[ERROR] Observation of LwM2M resource /5000/0/1 timed out.");
         } else {
             printf("[ERROR] Wrong value reported from test.\r\n");
             greentea_send_kv("fail_test", 0);
@@ -229,8 +232,9 @@ void smcc_register(void) {
         // First GET test must be successful first.
         if (get_status == 0) {
             // Update resource /5000/0/1 from client and observe value
-            greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
             res_get_test->set_value("test1");
+
+            greentea_send_kv("device_lwm2m_get_test", "/5000/0/1");
 
             // Wait for Host Test to verify it read the value and send it back.
             greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
@@ -243,6 +247,9 @@ void smcc_register(void) {
                     get_status = -1;
                     printf("[ERROR] Wrong value observed in Pelion DM.\r\n");
                 }
+            } else if (strcmp(_key, "timeout") == 0) {
+                get_status = -1;
+                printf("[ERROR] Observation of LwM2M resource /5000/0/1 timed out.\r\n");
             } else {
                 printf("[ERROR] Wrong value reported from test.\r\n");
                 greentea_send_kv("fail_test", 0);
@@ -257,7 +264,7 @@ void smcc_register(void) {
         int current_res_value;
         int updated_res_value;
 
-        // Observe resource /5000/0/2 from cloud, add +10, and confirm value is correct on client
+        // Observe resource /5000/0/2 from cloud, add +5, and confirm value is correct on client
         greentea_send_kv("device_lwm2m_put_test", "/5000/0/2");
         greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
 
@@ -275,6 +282,9 @@ void smcc_register(void) {
                 put_status = -1;
                 printf("[ERROR] Wrong value read from device after resource update.\r\n");
             }
+        } else if (strcmp(_key, "timeout") == 0) {
+            put_status = -1;
+            printf("[ERROR] PUT of LwM2M resource /5000/0/2 timed out.\r\n");
         } else {
             printf("[ERROR] Wrong value reported from test.\r\n");
             greentea_send_kv("fail_test", 0);
@@ -299,6 +309,9 @@ void smcc_register(void) {
                 post_status = -1;
                 printf("[ERROR] Callback on resource /5000/0/3 failed.");
             }
+        } else if (strcmp(_key, "timeout") == 0) {
+            post_status = -1;
+            printf("[ERROR] POST of LwM2M resource /5000/0/3 timed out.");
         } else {
             printf("[ERROR] Wrong value reported from test.\r\n");
             greentea_send_kv("fail_test", 0);

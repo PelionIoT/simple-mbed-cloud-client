@@ -32,6 +32,7 @@ class SDKTests(BaseHostTest):
     connectApi = None
     deviceID = None
     iteration = None
+    post_timeout = None
     
     def test_steps(self):
         # Step 0 set up test
@@ -88,36 +89,78 @@ class SDKTests(BaseHostTest):
         
     def _callback_device_lwm2m_get_verification(self, key, value, timestamp):
         global deviceID
+        timeout = 0
         
         # Get resource value from device
-        resource_value = self.connectApi.get_resource_value(deviceID, value)
+        async_response = self.connectApi.get_resource_value_async(deviceID, value)
         
-        # Send resource value back to device
-        self.send_kv("res_value", resource_value)
+        # Set a 30 second timeout here.
+        while not async_response.is_done and timeout <= 300:
+            time.sleep(0.1)
+            timeout += 1
+        
+        if async_response.is_done:
+            # Send resource value back to device
+            self.send_kv("res_value", async_response.value)
+        else:
+            # Request timed out.
+            self.send_kv("timeout", 0)
     
     def _callback_device_lwm2m_put_verification(self, key, value, timestamp):
         global deviceID
+        timeout = 0
         
         # Get resource value from device and increment it
-        resource_value = self.connectApi.get_resource_value(deviceID, value)
-        updated_value = int(resource_value) + 5  
+        resource_value = self.connectApi.get_resource_value_async(deviceID, value)
+        
+        # Set a 30 second timeout here.
+        while not resource_value.is_done and timeout <= 300:
+            time.sleep(0.1)
+            timeout += 1
+            
+        if not resource_value.is_done:
+            self.send_kv("timeout", 0)
+            return
+        
+        updated_value = int(resource_value.value) + 5
         
         # Set new resource value from cloud
-        self.connectApi.set_resource_value(deviceID, value, updated_value)
-
-        # Send new resource value to device for verification.
-        self.send_kv("res_set", updated_value);
+        async_response = self.connectApi.set_resource_value_async(deviceID, value, updated_value)
+        
+        # Set a 30 second timeout here.
+        while not async_response.is_done and timeout <= 300:
+            time.sleep(0.1)
+            timeout += 1
+            
+        if not async_response.is_done:
+            self.send_kv("timeout", 0)
+        else:
+            # Send new resource value to device for verification.
+            self.send_kv("res_set", updated_value);
         
     def _callback_device_lwm2m_post_verification(self, key, value, timestamp):
         global deviceID
+        timeout = 0
         
         # Execute POST function on device
-        resource_value = self.connectApi.execute_resource(deviceID, value)
+        resource_value = self.connectApi.execute_resource_async(deviceID, value)
+        
+        # Set a 30 second timeout here.
+        while not resource_value.is_done and timeout <= 300:
+            time.sleep(0.1)
+            timeout += 1
+            
+        if not resource_value.is_done:
+            self.send_kv("timeout", 0)
+            self.post_timeout = 1
         
     def _callback_device_lwm2m_post_verification_result(self, key, value, timestamp):
         
         # Called from callback function on device, POST function working as expected.
-        self.send_kv("post_test_executed", 0)
+        # If post_timeout is not none, the request took longer than 30 seconds, which is
+        # a failure. Don't send this value.
+        if not self.post_timeout:
+            self.send_kv("post_test_executed", 0)
 
     def setup(self):
         #Start at iteration 0
@@ -162,6 +205,12 @@ class SDKTests(BaseHostTest):
         return self.__result
 
     def teardown(self):
+        global deviceID
+        
+        # Delete device from directory so as not to hit device allocation quota.
+        if deviceID:
+            self.deviceApi.delete_device(deviceID)
+            
         pass
     
     def __init__(self):
