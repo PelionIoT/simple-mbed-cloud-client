@@ -1,16 +1,15 @@
 # Simple Pelion Device Management Client
 
-(aka Simple Mbed Cloud Client)
+(aka Simple Pelion DM Client, SPDMC, previously called Simple Mbed Cloud Client)
 
 A simple way of connecting Mbed OS 5 devices to Arm Pelion Device Management. It's designed to:
-
-* Enables applications to connect and perform firmware updates in few lines of code.
+* Enable applications to connect and perform firmware updates in few lines of code.
 * Run separate from your main application, it does not take over your main loop.
-* Provide LWM2M resources, essentially variables that are automatically synced through Pelion Client.
+* Provide LWM2M resources, essentially variables that are automatically synced through Pelion DM Client.
 * Help users avoid doing blocking network operations in interrupt contexts, by automatically defering actions to a separate thread.
-* Provide end to end Greentea tests for Pelion Client
+* Provide end to end Greentea tests for Pelion DM Client
 
-This library is a simpler interface to Pelion Cloud Client, making it trivial to expose sensors, actuators and other variables to the cloud. For a full Pelion CLient API, check our [documentation](https://cloud.mbed.com/docs/current/mbed-cloud-client/index.html).
+This library is a simpler interface to Pelion DM Client, making it trivial to expose sensors, actuators and other variables to the cloud. For a complete Pelion DM CLient API, check our [documentation](https://cloud.mbed.com/docs/current/mbed-cloud-client/index.html).
 
 ## Usage to Connect to Pelion Device Management
 
@@ -22,7 +21,7 @@ This library is a simpler interface to Pelion Cloud Client, making it trivial to
 
 2. Add your Pelion developer certificate to your project (`mbed_cloud_dev_credentials.c` file).
 
-3. Reference the library from your main.cpp file, add network and storage drivers; finally initialize the Simple Pelion Client library. The is the architecture of a generic Simple Pelion Client application:
+3. Reference the library from your main.cpp file, add network and storage drivers; finally initialize the Simple Pelion DM Client library. The is the architecture of a generic Simple Pelion DM Client application:
 
     ```cpp
     #include "simple-mbed-cloud-client.h"
@@ -40,7 +39,7 @@ This library is a simpler interface to Pelion Cloud Client, making it trivial to
         <Block device> sd(...);
         <Filesystem> fs("sd", &sd);
 
-        /* Initialize Simple Pelion Client */
+        /* Initialize Simple Pelion DM Client */
         SimpleMbedCloudClient client(net, &sd, &fs);
         client.init();
 
@@ -55,37 +54,38 @@ This library is a simpler interface to Pelion Cloud Client, making it trivial to
 
 ## Example applications
 
-  There are a number of applications that make usage of the Simple Pelion Client library.
+  There are a number of applications that make usage of the Simple Pelion DM Client library.
 
   The Pelion [Quick-Start](https://cloud.mbed.com/quick-start) is an initiative to support Mbed Partner's platforms while delivering a great User Experience to Mbed Developers.
 
 ## Testing
 
-Simple Pelion Client provides Greentea tests to test your porting efforts.
+Simple Pelion DM Client provides Greentea tests to test your porting efforts.
 
 ### Test cases
 
 | **Test case** | **Description** |
 | ------------- | ------------- |
-| `Connect to network` | Tests the connection to the network via network interface. |
-| `Format storage` | Tests that a successful storage format occurs and storage is configured correctly. |
-| `Simple Mbed Cloud Client Initialization` | Verifies that SMCC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
-| `Pelion Device Management Register` | Confirms the device is registered to Pelion from the client. |
-| `Device registration in Device Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
+| `Connect to Network` | Tests the connection to the network via network interface. |
+| `Format Storage` | Tests that a successful storage format occurs and storage is configured correctly. |
+| `Simple MCC Initialization` | Verifies that SPDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
+| `Pelion DM Register` | Confirms the device is registered to Pelion Device Management from using the Pelion DM REST API. |
+| `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
 | `Consistent Identity` | Confirms that the device identity is preserved over a device reset, confirming that Root of Trust is stored in SOTP correctly. |
-| `LwM2M GET Test` | Confirms that Pelion can perform a GET request on an LwM2M resource, and observe the value changing. |
-| `LwM2M PUT Test` | Confirms that Pelion can perform a PUT request on an LwM2M resource by setting a new value. |
-| `LwM2M POST Test` | Confirms that Pelion can execute a POST on an LwM2M resource and the callback function on the device is called. |
+| `LwM2M GET Test` | Confirms that Pelion DM API client can perform a GET request on an LwM2M resource. |
+| `LwM2M SET Test` | Sets/changes value from the device and confirms that Pelion DM API client can observe the value changing. |
+| `LwM2M PUT Test` | Confirms that Pelion DM API client can perform a PUT request on an LwM2M resource by setting a new value. |
+| `LwM2M POST Test` | Confirms that Pelion DM API client can execute a POST on an LwM2M resource and the callback function on the device is called. |
 
 ### Requirements
- Simple Pelion Client tests rely on the Python SDK to test the end to end solution.
+ Simple Pelion DM tests rely on the Python SDK to test the end to end solution.
  To install the Python SDK:
 `pip install mbed-cloud-sdk`
  **Note:** The Python SDK requires Python 2.7.10+ / Python 3.4.3+, built with SSL support.
 
  ### Setup
 
- 1. Import an Simple Pelion Client application that contains the corresponding configuration in `mbed_app.json`. The application will include this Simple Pelion Client library.
+ 1. Import an Simple Pelion DM Client application that contains the corresponding configuration in `mbed_app.json`. The application will include this Simple Pelion DM Client library.
 
     For examples of platform configuration, see the applications available in the [Quick-start](https://cloud.mbed.com/quick-start).
    
@@ -104,12 +104,12 @@ Simple Pelion Client provides Greentea tests to test your porting efforts.
     
     ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile```
 
- 6. Run the Simple Pelion Client tests from the application directory:
+ 5. Run the Simple Pelion Device Management Client tests from the application directory:
 
      ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v```
 
 ### Troubleshooting
-Below are a list of common issues and fixes for using Simple Pelion Client.
+Below are a list of common issues and fixes for using Simple Pelion DM Client.
 
 #### Autoformatting failed with error -5005
 This is due to an issue with the storage block device. If using an SD card, ensure that the SD card is seated properly.
@@ -120,7 +120,7 @@ Occasionally, if the test failed during a previous attempt, the SMCC Greentea te
 #### Device identity is inconsistent
 If your device ID in Pelion Device Management is inconsistent over a device reset, it could be because it is failing to open the credentials on the storage held in the Enhanced Secure File System. Typically, this is because the device cannot access the Root of Trust stored in SOTP.
 
-One way to verify this is to see if Simple Pelion Client autoformats the storage after a device reset when `format-storage-layer-on-error` is set to `1` in `mbed_app.json`.  It would appear on the serial terminal output from the device as the following:
+One way to verify this is to see if Simple Pelion DM Client autoformats the storage after a device reset when `format-storage-layer-on-error` is set to `1` in `mbed_app.json`.  It would appear on the serial terminal output from the device as the following:
 ```
 [SMCC] Initializing storage.
 [SMCC] Autoformatting the storage.
