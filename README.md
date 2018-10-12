@@ -98,11 +98,13 @@ Simple Pelion Client provides Greentea tests to test your porting efforts.
      For instructions on how to generate an API key, please [see the documentation](https://cloud.mbed.com/docs/current/integrate-web-app/api-keys.html#generating-an-api-key).
 
    
- 4. Compile the tests with the `MBED_TEST_MODE` compilation flag.
+ 4. Remove the `main.cpp`application from the project, or ensure the content of the file is wrapped with `#ifndef MBED_TEST_MODE`.
+ 
+ 5. Compile the tests with the `MBED_TEST_MODE` compilation flag.
     
     ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile```
 
- 5. Run the Simple Pelion Client tests from the application directory:
+ 6. Run the Simple Pelion Client tests from the application directory:
 
      ```mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v```
 
