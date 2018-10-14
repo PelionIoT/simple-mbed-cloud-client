@@ -384,7 +384,7 @@ int main(void) {
     Thread thread;
     thread.start(led_thread);
 
-    GREENTEA_SETUP(150, "sdk_host_tests");
+    GREENTEA_SETUP(210, "sdk_host_tests");
     spdmc_testsuite_connect();
 
     return 0;
