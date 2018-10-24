@@ -250,6 +250,7 @@ void spdmc_testsuite_connect(void) {
         logger("[INFO] Beginning LwM2M resource tests.\r\n");
 
 
+        wait_nb(200);
         // ---------------------------------------------
         // GET test
         GREENTEA_TESTCASE_START("LwM2M GET Test");
@@ -277,6 +278,7 @@ void spdmc_testsuite_connect(void) {
         GREENTEA_TESTCASE_FINISH("LwM2M GET Test", (get_status == 0), (get_status != 0));
 
 
+        wait_nb(200);
         // ---------------------------------------------
         // SET test
         GREENTEA_TESTCASE_START("LwM2M SET Test");
@@ -306,6 +308,7 @@ void spdmc_testsuite_connect(void) {
         GREENTEA_TESTCASE_FINISH("LwM2M SET Test", (set_status == 0), (set_status != 0));
 
 
+        wait_nb(200);
         // ---------------------------------------------
         // PUT Test
         GREENTEA_TESTCASE_START("LwM2M PUT Test");
@@ -342,6 +345,7 @@ void spdmc_testsuite_connect(void) {
         GREENTEA_TESTCASE_FINISH("LwM2M PUT Test", (put_status == 0), (put_status != 0));
 
 
+        wait_nb(200);
         // ---------------------------------------------
         // POST test
         GREENTEA_TESTCASE_START("LwM2M POST Test");
