@@ -10,7 +10,7 @@ using namespace utest::v1;
 
 // Default storage definition.
 BlockDevice* bd = BlockDevice::get_default_instance();
-FATFileSystem fs("sd", bd);
+FATFileSystem fs("fs", bd);
 
 static const ConnectorClientEndpointInfo* endpointInfo;
 void registered(const ConnectorClientEndpointInfo *endpoint) {

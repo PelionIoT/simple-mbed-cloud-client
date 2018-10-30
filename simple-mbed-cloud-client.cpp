@@ -31,6 +31,8 @@
 #include "mbed-trace/mbed_trace.h"
 #include "mbed-trace-helper.h"
 
+#define TRACE_GROUP "SMCC"
+
 #ifdef MBED_CLOUD_CLIENT_USER_CONFIG_FILE
 #include MBED_CLOUD_CLIENT_USER_CONFIG_FILE
 #endif
@@ -44,7 +46,7 @@
 #endif
 
 #ifndef DEFAULT_FIRMWARE_PATH
-#define DEFAULT_FIRMWARE_PATH       "/sd/firmware"
+#define DEFAULT_FIRMWARE_PATH       "/fs/firmware"
 #endif
 
 BlockDevice *arm_uc_blockdevice;
@@ -57,7 +59,8 @@ SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice 
     _unregistered_cb(NULL),
     _net(net),
     _bd(bd),
-    _fs(fs)
+    _fs(fs),
+    _storage(bd, fs)
 {
     arm_uc_blockdevice = bd;
 }
@@ -84,61 +87,74 @@ int SimpleMbedCloudClient::init() {
     // Initialize Mbed Trace for debugging
     // Create mutex for tracing to avoid broken lines in logs
     if(!mbed_trace_helper_create_mutex()) {
-        printf("ERROR - Mutex creation for mbed_trace failed!\n");
+        printf("[SMCC] ERROR - Mutex creation for mbed_trace failed!\n");
         return 1;
     }
 
     // Initialize mbed trace
-    (void) mbed_trace_init();
+    mbed_trace_init();
+    mbed_trace_helper_create_mutex();
     mbed_trace_mutex_wait_function_set(mbed_trace_helper_mutex_wait);
     mbed_trace_mutex_release_function_set(mbed_trace_helper_mutex_release);
 
     // Initialize the FCC
-    fcc_status_e fcc_status = fcc_init();
-    if(fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[SMCC] Factory Client Configuration failed with status %d. \n", fcc_status);
+    int status = fcc_init();
+    if (status != FCC_STATUS_SUCCESS && status != FCC_STATUS_ENTROPY_ERROR && status != FCC_STATUS_ROT_ERROR) {
+        tr_error("Factory Client Configuration failed with status %d", status);
         return 1;
     }
 
-    fcc_status = fcc_verify_device_configured_4mbed_cloud();
-
-    if (fcc_status == FCC_STATUS_KCM_STORAGE_ERROR) {
-        int mount_result = mount_storage();
-        if (mount_result != 0) {
-            printf("[SMCC] Failed to mount file system with status %d. \n", mount_result);
-#if !defined(MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR) || MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR == 0
-            return 1;
-#endif
-        } else {
-            // Retry with mounted filesystem.
-            fcc_status = fcc_verify_device_configured_4mbed_cloud();
-        }
+    status = _storage.init();
+    if (status != FCC_STATUS_SUCCESS) {
+        tr_error("Failed to initialize storage layer (%d)", status);
+        return 1;
     }
 
+    status = _storage.sotp_init();
+    if (status != FCC_STATUS_SUCCESS) {
+        tr_error("Could not initialize SOTP (%d)", status);
+        fcc_finalize();
+        return 1;
+    }
+
+#if RESET_STORAGE
+    status = reset_storage();
+    if (status != FCC_STATUS_SUCCESS) {
+        tr_error("reset_storage (triggered by RESET_STORAGE macro) failed (%d)", status);
+        return 1;
+    }
+    // Reinitialize SOTP
+    status = _storage.sotp_init();
+    if (status != FCC_STATUS_SUCCESS) {
+        tr_error("Could not initialize SOTP (%d)", status);
+        return 1;
+    }
+#endif
+
+    status = verify_cloud_configuration();
+
+    if (status != 0) {
     // This is designed to simplify user-experience by auto-formatting the
     // primary storage if no valid certificates exist.
     // This should never be used for any kind of production devices.
-#if defined(MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR) && MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR == 1
-    if (fcc_status != FCC_STATUS_SUCCESS) {
-        if (reformat_storage() != 0) {
-            return 1;
+#if MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR == 1
+        tr_info("Could not load certificate (e.g. no certificates or RoT might have changed), resetting storage...");
+        status = reset_storage();
+        if (status != FCC_STATUS_SUCCESS) {
+            return status;
         }
-
-        reset_storage();
-    }
+        status = _storage.sotp_init();
+        if (status != FCC_STATUS_SUCCESS) {
+            return status;
+        }
+        status = verify_cloud_configuration();
+        if (status != 0) {
+            return status;
+        }
 #else
-    if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[SMCC] Device not configured for mbed Cloud - try re-formatting your storage device or set MBED_CONF_APP_FORMAT_STORAGE_LAYER_ON_ERROR to 1\n");
         return 1;
+#endif
     }
-#endif
-
-    // Resets storage to an empty state.
-    // Use this function when you want to clear storage from all the factory-tool generated data and user data.
-    // After this operation device must be injected again by using factory tool or developer certificate.
-#ifdef RESET_STORAGE
-    reset_storage();
-#endif
 
     // Deletes existing firmware images from storage.
     // This deletes any existing firmware images during application startup.
@@ -147,22 +163,11 @@ int SimpleMbedCloudClient::init() {
     palStatus_t status = PAL_SUCCESS;
     status = pal_fsRmFiles(DEFAULT_FIRMWARE_PATH);
     if(status == PAL_SUCCESS) {
-        printf("[SMCC] Firmware storage erased.\n");
+        tr_info("Firmware storage erased");
     } else if (status == PAL_ERR_FS_NO_PATH) {
-        printf("[SMCC] Firmware path not found/does not exist.\n");
+        tr_info("Firmware path not found/does not exist");
     } else {
-        printf("[SMCC] Firmware storage erasing failed with %" PRId32, status);
-        return 1;
-    }
-#endif
-
-#if MBED_CONF_APP_DEVELOPER_MODE == 1
-    printf("[SMCC] Starting developer flow\n");
-    fcc_status = fcc_developer_flow();
-    if (fcc_status == FCC_STATUS_KCM_FILE_EXIST_ERROR) {
-        printf("[SMCC] Developer credentials already exist\n");
-    } else if (fcc_status != FCC_STATUS_SUCCESS) {
-        printf("[SMCC] Failed to load developer credentials - is the storage device active and accessible?\n");
+        tr_error("Firmware storage erasing failed with %" PRId32, status);
         return 1;
     }
 #endif
@@ -181,7 +186,7 @@ bool SimpleMbedCloudClient::call_register() {
     bool setup = _cloud_client.setup(_net);
     _register_called = true;
     if (!setup) {
-        printf("[SMCC] Client setup failed\n");
+        tr_error("Client setup failed");
         return false;
     }
 
@@ -351,11 +356,11 @@ bool SimpleMbedCloudClient::register_and_connect() {
     // Start registering to the cloud.
     bool retval = call_register();
 
-    // Print memory statistics if the MBED_HEAP_STATS_ENABLED is defined.
-    #ifdef MBED_HEAP_STATS_ENABLED
-        printf("[SMCC] Register being called\r\n");
+// Print memory statistics if the MBED_HEAP_STATS_ENABLED is defined.
+#ifdef MBED_HEAP_STATS_ENABLED
+        tr_info("Register being called");
         heap_stats();
-    #endif
+#endif
 
     return retval;
 }
@@ -368,6 +373,10 @@ void SimpleMbedCloudClient::on_unregistered(Callback<void()> cb) {
     _unregistered_cb = cb;
 }
 
+int SimpleMbedCloudClient::reformat_storage() {
+    return _storage.reformat_storage();
+}
+
 MbedCloudClient& SimpleMbedCloudClient::get_cloud_client() {
     return _cloud_client;
 }
@@ -378,34 +387,47 @@ MbedCloudClientResource* SimpleMbedCloudClient::create_resource(const char *path
     return resource;
 }
 
-int SimpleMbedCloudClient::reformat_storage()
-{
-    int reformat_result = -1;
-    printf("[SMCC] Autoformatting the storage.\n");
-    if (_bd) {
-        reformat_result = _fs->reformat(_bd);
-        if (reformat_result != 0) {
-            printf("[SMCC] Autoformatting failed with error %d\n", reformat_result);
+int SimpleMbedCloudClient::reset_storage() {
+    tr_info("Resetting storage to an empty state...");
+    int status = fcc_storage_delete();
+    if (status != FCC_STATUS_SUCCESS) {
+        tr_debug("Failed to delete FCC storage (%d), formatting...", status);
+
+        status = _storage.reformat_storage();
+        if (status == 0) {
+            tr_debug("Storage reformatted, resetting storage again...");
+            // Try to reset storage again after format.
+            // It is required to run fcc_storage_delete() after format.
+            status = fcc_storage_delete();
+            if (status != FCC_STATUS_SUCCESS) {
+                tr_warn("Failed to delete FCC storage (again) (%d)", status);
+            }
+            else {
+                tr_debug("Deleted FCC storage");
+            }
         }
     }
-    return reformat_result;
+
+    if (status == FCC_STATUS_SUCCESS) {
+        tr_info("OK - Reset storage to an empty state...");
+    }
+
+    return status;
 }
 
-void SimpleMbedCloudClient::reset_storage()
-{
-    printf("[SMCC] Reset storage to an empty state.\n");
-    fcc_status_e delete_status = fcc_storage_delete();
-    if (delete_status != FCC_STATUS_SUCCESS) {
-        printf("[SMCC] Failed to delete storage - %d\n", delete_status);
-    }
-}
+int SimpleMbedCloudClient::verify_cloud_configuration() {
+    int status;
 
-int SimpleMbedCloudClient::mount_storage()
-{
-    int mount_result = -1;
-    printf("[SMCC] Initializing storage.\n");
-    if (_bd) {
-        mount_result = _fs->mount(_bd);
+#if MBED_CONF_APP_DEVELOPER_MODE == 1
+    tr_debug("Starting developer flow");
+    status = fcc_developer_flow();
+    if (status == FCC_STATUS_KCM_FILE_EXIST_ERROR) {
+        tr_debug("Developer credentials already exist on storage layer, verifying credentials...");
+    } else if (status != FCC_STATUS_SUCCESS) {
+        tr_debug("No developer credentials on storage layer yet");
+        return status;
     }
-    return mount_result;
+#endif
+    status = fcc_verify_device_configured_4mbed_cloud();
+    return status;
 }
