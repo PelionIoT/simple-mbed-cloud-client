@@ -51,16 +51,23 @@
 
 BlockDevice *arm_uc_blockdevice;
 
+#ifdef TARGET_SIMULATOR
+SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd) :
+#else
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs) :
+#endif
     _registered(false),
     _register_called(false),
     _register_and_connect_called(false),
     _registered_cb(NULL),
     _unregistered_cb(NULL),
     _net(net),
-    _bd(bd),
+    _bd(bd)
+#ifndef TARGET_SIMULATOR
+    ,
     _fs(fs),
     _storage(bd, fs)
+#endif
 {
     arm_uc_blockdevice = bd;
 }
@@ -104,6 +111,7 @@ int SimpleMbedCloudClient::init() {
         return 1;
     }
 
+#ifndef TARGET_SIMULATOR
     status = _storage.init();
     if (status != FCC_STATUS_SUCCESS) {
         tr_error("Failed to initialize storage layer (%d)", status);
@@ -129,6 +137,8 @@ int SimpleMbedCloudClient::init() {
         tr_error("Could not initialize SOTP (%d)", status);
         return 1;
     }
+#endif
+
 #endif
 
     status = verify_cloud_configuration();
@@ -159,7 +169,7 @@ int SimpleMbedCloudClient::init() {
     // Deletes existing firmware images from storage.
     // This deletes any existing firmware images during application startup.
     // This compilation flag is currently implemented only for mbed OS.
-#ifdef RESET_FIRMWARE
+#if defined(RESET_FIRMWARE) && !defined(TARGET_SIMULATOR)
     palStatus_t status = PAL_SUCCESS;
     status = pal_fsRmFiles(DEFAULT_FIRMWARE_PATH);
     if(status == PAL_SUCCESS) {
@@ -374,7 +384,11 @@ void SimpleMbedCloudClient::on_unregistered(Callback<void()> cb) {
 }
 
 int SimpleMbedCloudClient::reformat_storage() {
+#ifdef TARGET_SIMULATOR
+    return 0;
+#else
     return _storage.reformat_storage();
+#endif
 }
 
 MbedCloudClient& SimpleMbedCloudClient::get_cloud_client() {
@@ -393,6 +407,7 @@ int SimpleMbedCloudClient::reset_storage() {
     if (status != FCC_STATUS_SUCCESS) {
         tr_debug("Failed to delete FCC storage (%d), formatting...", status);
 
+#ifndef TARGET_SIMULATOR
         status = _storage.reformat_storage();
         if (status == 0) {
             tr_debug("Storage reformatted, resetting storage again...");
@@ -406,6 +421,7 @@ int SimpleMbedCloudClient::reset_storage() {
                 tr_debug("Deleted FCC storage");
             }
         }
+#endif
     }
 
     if (status == FCC_STATUS_SUCCESS) {

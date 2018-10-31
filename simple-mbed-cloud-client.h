@@ -27,7 +27,10 @@
 #include "mbed_cloud_client_resource.h"
 #include "mbed.h"
 #include "NetworkInterface.h"
+#include "BlockDevice.h"
+#ifndef TARGET_SIMULATOR
 #include "storage_helper.h"
+#endif
 
 class MbedCloudClientResource;
 
@@ -35,7 +38,11 @@ class SimpleMbedCloudClient {
 
 public:
 
+#ifdef TARGET_SIMULATOR
+    SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd);
+#else
     SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs);
+#endif
     ~SimpleMbedCloudClient();
 
     int init();
@@ -68,8 +75,10 @@ private:
     Callback<void()>                                    _unregistered_cb;
     NetworkInterface *                                  _net;
     BlockDevice *                                       _bd;
+#ifndef TARGET_SIMULATOR
     FileSystem *                                        _fs;
     StorageHelper                                       _storage;
+#endif
 };
 
 #endif // SIMPLEMBEDCLOUDCLIENT_H
