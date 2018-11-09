@@ -28,9 +28,7 @@
 #include "mbed.h"
 #include "NetworkInterface.h"
 #include "BlockDevice.h"
-#ifndef TARGET_SIMULATOR
 #include "storage_helper.h"
-#endif
 
 class MbedCloudClientResource;
 
@@ -77,8 +75,8 @@ private:
     BlockDevice *                                       _bd;
 #ifndef TARGET_SIMULATOR
     FileSystem *                                        _fs;
-    StorageHelper                                       _storage;
 #endif
+    StorageHelper                                       _storage;
 };
 
 #endif // SIMPLEMBEDCLOUDCLIENT_H

@@ -79,18 +79,29 @@ SimpleMbedCloudClient::~SimpleMbedCloudClient() {
 }
 
 int SimpleMbedCloudClient::init() {
+    printf("here1\n");
+#ifndef TARGET_SIMULATOR
     // Requires DAPLink 245+ (https://github.com/ARMmbed/DAPLink/pull/364)
     // Older versions: workaround to prevent possible deletion of credentials:
     wait(1);
+#endif
+    printf("here2\n");
+
+    tr_info("SimpleMbedCloudClient::init");
 
     extern const uint8_t arm_uc_vendor_id[];
     extern const uint16_t arm_uc_vendor_id_size;
     extern const uint8_t arm_uc_class_id[];
     extern const uint16_t arm_uc_class_id_size;
 
+    printf("here3\n");
+
     ARM_UC_SetVendorId(arm_uc_vendor_id, arm_uc_vendor_id_size);
     ARM_UC_SetClassId(arm_uc_class_id, arm_uc_class_id_size);
 
+    printf("here4\n");
+
+#ifndef TARGET_SIMULATOR
     // Initialize Mbed Trace for debugging
     // Create mutex for tracing to avoid broken lines in logs
     if(!mbed_trace_helper_create_mutex()) {
@@ -103,20 +114,27 @@ int SimpleMbedCloudClient::init() {
     mbed_trace_helper_create_mutex();
     mbed_trace_mutex_wait_function_set(mbed_trace_helper_mutex_wait);
     mbed_trace_mutex_release_function_set(mbed_trace_helper_mutex_release);
+#endif
+
+    printf("jan1\n");
 
     // Initialize the FCC
     int status = fcc_init();
     if (status != FCC_STATUS_SUCCESS && status != FCC_STATUS_ENTROPY_ERROR && status != FCC_STATUS_ROT_ERROR) {
         tr_error("Factory Client Configuration failed with status %d", status);
+        printf("jan2\n");
         return 1;
     }
 
-#ifndef TARGET_SIMULATOR
+    printf("jan3\n");
+
     status = _storage.init();
     if (status != FCC_STATUS_SUCCESS) {
         tr_error("Failed to initialize storage layer (%d)", status);
         return 1;
     }
+
+    printf("jan4\n");
 
     status = _storage.sotp_init();
     if (status != FCC_STATUS_SUCCESS) {
@@ -139,9 +157,11 @@ int SimpleMbedCloudClient::init() {
     }
 #endif
 
-#endif
+    printf("jan4\n");
 
     status = verify_cloud_configuration();
+
+    printf("jan5 %d\n", status);
 
     if (status != 0) {
     // This is designed to simplify user-experience by auto-formatting the
@@ -187,7 +207,10 @@ int SimpleMbedCloudClient::init() {
 
 bool SimpleMbedCloudClient::call_register() {
     // need to unregister first before calling this function again
-    if (_register_called) return false;
+    if (_register_called) {
+        tr_info("Already registered");
+        return false;
+    }
 
     _cloud_client.on_registered(this, &SimpleMbedCloudClient::client_registered);
     _cloud_client.on_unregistered(this, &SimpleMbedCloudClient::client_unregistered);
@@ -210,6 +233,7 @@ bool SimpleMbedCloudClient::call_register() {
     _cloud_client.set_update_authorize_handler(update_authorize);
     _cloud_client.set_update_progress_handler(update_progress);
 #endif
+
     return true;
 }
 
@@ -347,7 +371,12 @@ bool SimpleMbedCloudClient::is_register_called() {
 }
 
 bool SimpleMbedCloudClient::register_and_connect() {
-    if (_register_and_connect_called) return false;
+    EM_ASM({ console.log('register_and_connect')});
+    if (_register_and_connect_called) {
+        return false;
+    }
+
+    tr_info("register_and_connect");
 
     mcc_resource_def resourceDef;
 
@@ -363,6 +392,8 @@ bool SimpleMbedCloudClient::register_and_connect() {
 
     _register_and_connect_called = true;
 
+    tr_info("start_register");
+
     // Start registering to the cloud.
     bool retval = call_register();
 
@@ -371,6 +402,8 @@ bool SimpleMbedCloudClient::register_and_connect() {
         tr_info("Register being called");
         heap_stats();
 #endif
+
+    tr_info("call_register returned %d", retval);
 
     return retval;
 }
@@ -384,11 +417,7 @@ void SimpleMbedCloudClient::on_unregistered(Callback<void()> cb) {
 }
 
 int SimpleMbedCloudClient::reformat_storage() {
-#ifdef TARGET_SIMULATOR
-    return 0;
-#else
     return _storage.reformat_storage();
-#endif
 }
 
 MbedCloudClient& SimpleMbedCloudClient::get_cloud_client() {
@@ -433,6 +462,8 @@ int SimpleMbedCloudClient::reset_storage() {
 
 int SimpleMbedCloudClient::verify_cloud_configuration() {
     int status;
+
+    printf("\n\n\nverify_cloud_configuration\n\n\n");
 
 #if MBED_CONF_APP_DEVELOPER_MODE == 1
     tr_debug("Starting developer flow");
