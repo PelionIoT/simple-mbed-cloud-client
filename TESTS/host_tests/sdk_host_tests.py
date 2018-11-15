@@ -22,6 +22,7 @@ from mbed_cloud.connect import ConnectAPI
 import os
 import time
 import subprocess
+import re
 
 DEFAULT_CYCLE_PERIOD = 1.0
 
@@ -199,20 +200,21 @@ class SDKTests(BaseHostTest):
         
         # Setup API config
         try:
-            result = subprocess.check_output(["mbed", "config", "-G", "CLOUD_SDK_API_KEY"], \
-                                              stderr=subprocess.STDOUT)
+            result = subprocess.check_output(["mbed", "config", "--list"], \
+                                            stderr=subprocess.STDOUT)
         except Exception, e:
             print "Error: CLOUD_SDK_API_KEY global config is not set: " + str(e)
             return -1
 
-        result = str(result).split(' ')
-        if result[1] == "No":
+        match = re.search(r'CLOUD_SDK_API_KEY=(.*)\n', result)
+        if match == None:
             print "Error: CLOUD_SDK_API_KEY global config is not set."
             return -1
 
+        api_key_val = match.group(1).strip()
+
         # Get API KEY and remove LF char if included
-        api_key_val = str(result[1]).rstrip()
-        print "CLOUD_SDK_API_KEY: " + api_key_val 
+        print "CLOUD_SDK_API_KEY: " + api_key_val
 
         api_config = {"api_key" : api_key_val, "host" : "https://api.us-east-1.mbedcloud.com"}
         
