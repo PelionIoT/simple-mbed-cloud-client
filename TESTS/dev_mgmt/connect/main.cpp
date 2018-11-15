@@ -14,6 +14,7 @@ void led_thread() {
         wait(0.5);
     }
 }
+RawSerial pc(USBTX, USBRX);
 
 // Default storage definition.
 BlockDevice* bd = BlockDevice::get_default_instance();
@@ -27,19 +28,19 @@ void wait_nb(uint16_t ms) {
 }
 
 void logger(const char* message, const char* decor) {
-    wait_ms(10);
-    printf(message, decor);
-    wait_ms(10);
+    wait_nb(10);
+    pc.printf(message, decor);
+    wait_nb(10);
 }
 void logger(const char* message) {
-    wait_ms(10);
-    printf(message);
-    wait_ms(10);
+    wait_nb(10);
+    pc.printf(message);
+    wait_nb(10);
 }
 
 static const ConnectorClientEndpointInfo* endpointInfo;
 void registered(const ConnectorClientEndpointInfo *endpoint) {
-    printf("[INFO] Connected to Pelion Device Management. Device ID: %s\n",
+    logger("[INFO] Connected to Pelion Device Management. Device ID: %s\n",
             endpoint->internal_endpoint_name.c_str());
     endpointInfo = endpoint;
 }
@@ -250,7 +251,7 @@ void spdmc_testsuite_connect(void) {
         logger("[INFO] Beginning LwM2M resource tests.\r\n");
 
 
-        wait_nb(200);
+        wait_nb(500);
         // ---------------------------------------------
         // GET test
         GREENTEA_TESTCASE_START("LwM2M GET Test");
@@ -278,7 +279,7 @@ void spdmc_testsuite_connect(void) {
         GREENTEA_TESTCASE_FINISH("LwM2M GET Test", (get_status == 0), (get_status != 0));
 
 
-        wait_nb(200);
+        wait_nb(500);
         // ---------------------------------------------
         // SET test
         GREENTEA_TESTCASE_START("LwM2M SET Test");
@@ -308,7 +309,7 @@ void spdmc_testsuite_connect(void) {
         GREENTEA_TESTCASE_FINISH("LwM2M SET Test", (set_status == 0), (set_status != 0));
 
 
-        wait_nb(200);
+        wait_nb(500);
         // ---------------------------------------------
         // PUT Test
         GREENTEA_TESTCASE_START("LwM2M PUT Test");
@@ -345,7 +346,7 @@ void spdmc_testsuite_connect(void) {
         GREENTEA_TESTCASE_FINISH("LwM2M PUT Test", (put_status == 0), (put_status != 0));
 
 
-        wait_nb(200);
+        wait_nb(500);
         // ---------------------------------------------
         // POST test
         GREENTEA_TESTCASE_START("LwM2M POST Test");
