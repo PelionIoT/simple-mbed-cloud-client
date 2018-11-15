@@ -18,7 +18,7 @@ RawSerial pc(USBTX, USBRX);
 
 // Default storage definition.
 BlockDevice* bd = BlockDevice::get_default_instance();
-FATFileSystem fs("sd", bd);
+FATFileSystem fs("fs", bd);
 
 void wait_nb(uint16_t ms) {
     while (ms > 0) {
@@ -136,7 +136,6 @@ void spdmc_testsuite_connect(void) {
     }
 
     GREENTEA_TESTCASE_FINISH("Simple PDMC Initialization", (client_status == 0), (client_status != 0));
-
 
     //Create LwM2M resources
     MbedCloudClientResource *res_get_test;

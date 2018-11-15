@@ -41,7 +41,7 @@ This library is a simpler interface to Pelion DM Client, making it trivial to ex
 
         /* Initialize storage */
         <Block device> sd(...);
-        <Filesystem> fs("sd", &sd);
+        <Filesystem> fs("fs", &sd);
 
         /* Initialize Simple Pelion DM Client */
         SimpleMbedCloudClient client(net, &sd, &fs);

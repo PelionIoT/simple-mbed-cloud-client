@@ -27,6 +27,7 @@
 #include "mbed_cloud_client_resource.h"
 #include "mbed.h"
 #include "NetworkInterface.h"
+#include "storage_helper.h"
 
 class MbedCloudClientResource;
 
@@ -54,8 +55,8 @@ public:
     int reformat_storage();
 
 private:
-    void reset_storage();
-    int mount_storage();
+    int reset_storage();
+    int verify_cloud_configuration();
 
     M2MObjectList                                       _obj_list;
     MbedCloudClient                                     _cloud_client;
@@ -68,6 +69,7 @@ private:
     NetworkInterface *                                  _net;
     BlockDevice *                                       _bd;
     FileSystem *                                        _fs;
+    StorageHelper                                       _storage;
 };
 
 #endif // SIMPLEMBEDCLOUDCLIENT_H
