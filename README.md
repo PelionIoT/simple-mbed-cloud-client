@@ -75,6 +75,7 @@ $ mbed dm init -d "<your company name in Pelion DM>" --model-name "<product mode
 | **Test case** | **Description** |
 | ------------- | ------------- |
 | `Connect to Network` | Tests the connection to the network via network interface. |
+| `Initialize Storage` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
 | `Format Storage` | Tests that a successful storage format occurs and storage is configured correctly. |
 | `Simple MCC Initialization` | Verifies that SPDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
 | `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |
@@ -91,6 +92,7 @@ $ mbed dm init -d "<your company name in Pelion DM>" --model-name "<product mode
 | **Test case** | **Description** |
 | ------------- | ------------- |
 | `Connect to Network` | Tests the connection to the network via network interface. |
+| `Initialize Storage` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
 | `Format Storage` | Tests that a successful storage format occurs and storage is configured correctly. |
 | `Simple MCC Initialization` | Verifies that SPDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
 | `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |

@@ -16,10 +16,6 @@ void led_thread() {
 }
 RawSerial pc(USBTX, USBRX);
 
-// Default storage definition.
-BlockDevice* bd = BlockDevice::get_default_instance();
-FATFileSystem fs("fs", bd);
-
 void wait_nb(uint16_t ms) {
     while (ms > 0) {
         ms--;
@@ -69,6 +65,7 @@ void spdmc_testsuite_connect(void) {
     if (iteration == 0) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_COUNT, 10);
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to Network");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Storage");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format Storage");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Simple PDMC Initialization");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Bootstrap & Reg.");
@@ -80,7 +77,6 @@ void spdmc_testsuite_connect(void) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M PUT Test");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M POST Test");
     }
-
 
     // Start network connection test.
     GREENTEA_TESTCASE_START("Connect to Network");
@@ -99,6 +95,16 @@ void spdmc_testsuite_connect(void) {
     }
 
     GREENTEA_TESTCASE_FINISH("Connect to Network", (net_status == 0), (net_status != 0));
+
+
+    GREENTEA_TESTCASE_START("Initialize Storage");
+    logger("[INFO] Attempting to initialize storage.\r\n");
+
+    // Default storage definition.
+    BlockDevice* bd = BlockDevice::get_default_instance();
+    FATFileSystem fs("fs", bd);
+
+    GREENTEA_TESTCASE_FINISH("Initialize Storage", 1, 0);
 
     // Instantiate SimpleMbedCloudClient.
     SimpleMbedCloudClient client(net, bd, &fs);

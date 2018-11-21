@@ -84,11 +84,6 @@ void update_progress(uint32_t progress, uint32_t total) {
     }
 }
 
-
-// Default storage and callbacks
-BlockDevice* bd = BlockDevice::get_default_instance();
-FATFileSystem fs("fs", bd);
-
 static const ConnectorClientEndpointInfo* endpointInfo;
 void registered(const ConnectorClientEndpointInfo *endpoint) {
     logger("[INFO] Connected to Pelion Device Management. Device ID: %s\n",
@@ -115,6 +110,7 @@ void spdmc_testsuite_update(void) {
     if (iteration == 0) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_COUNT, 10);
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to Network");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Storage");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format Storage");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Simple PDMC Initialization");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Bootstrap & Reg.");
@@ -143,6 +139,16 @@ void spdmc_testsuite_update(void) {
     }
 
     GREENTEA_TESTCASE_FINISH("Connect to Network", (net_status == 0), (net_status != 0));
+
+
+    GREENTEA_TESTCASE_START("Initialize Storage");
+    logger("[INFO] Attempting to initialize storage.\r\n");
+
+    // Default storage definition.
+    BlockDevice* bd = BlockDevice::get_default_instance();
+    FATFileSystem fs("fs", bd);
+
+    GREENTEA_TESTCASE_FINISH("Initialize Storage", 1, 0);
 
     // Instantiate SimpleMbedCloudClient.
     SimpleMbedCloudClient client(net, bd, &fs);
