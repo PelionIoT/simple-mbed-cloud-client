@@ -32,7 +32,7 @@ void update_ui_set_cloud_client(MbedCloudClient* client)
     _client = client;
 }
 
-void update_authorize(int32_t request)
+void __attribute__((weak)) update_authorize(int32_t request)
 {
     switch (request)
     {
@@ -72,7 +72,7 @@ void update_authorize(int32_t request)
 #endif
 #endif
 
-void update_progress(uint32_t progress, uint32_t total)
+void __attribute__((weak)) update_progress(uint32_t progress, uint32_t total)
 {
     uint8_t percent = progress * 100 / total;
 

@@ -64,22 +64,42 @@ This library is a simpler interface to Pelion DM Client, making it trivial to ex
 
 ## Testing
 
-Simple Pelion DM Client provides Greentea tests to test your porting efforts.
+Simple Pelion DM Client provides Greentea tests to test your porting efforts. Before running these tests, it's recommended that you run the `mbed dm init` command, which will install all needed credentials for both Connect and Update Pelion DM features. You can use the following command:
+```
+$ mbed dm init -d "<your company name in Pelion DM>" --model-name "<product model identifier>" -q --force
+```
 
-### Test cases
+
+### Test cases - Connect
 
 | **Test case** | **Description** |
 | ------------- | ------------- |
 | `Connect to Network` | Tests the connection to the network via network interface. |
 | `Format Storage` | Tests that a successful storage format occurs and storage is configured correctly. |
 | `Simple MCC Initialization` | Verifies that SPDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
-| `Pelion DM Register` | Confirms the device is registered to Pelion Device Management from using the Pelion DM REST API. |
+| `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |
 | `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
-| `Consistent Identity` | Confirms that the device identity is preserved over a device reset, confirming that Root of Trust is stored in SOTP correctly. |
+| `Pelion DM Re-register` | Resets the device and re-registers with Pelion Device Management with previously bootstrapped credentials. |
+| `Consistent Identity` | Verifies that the device identity is preserved over device reset, confirming that Root of Trust is stored in SOTP correctly. |
 | `LwM2M GET Test` | Confirms that Pelion DM API client can perform a GET request on an LwM2M resource. |
 | `LwM2M SET Test` | Sets/changes value from the device and confirms that Pelion DM API client can observe the value changing. |
 | `LwM2M PUT Test` | Confirms that Pelion DM API client can perform a PUT request on an LwM2M resource by setting a new value. |
 | `LwM2M POST Test` | Confirms that Pelion DM API client can execute a POST on an LwM2M resource and the callback function on the device is called. |
+
+### Test cases - Update
+
+| **Test case** | **Description** |
+| ------------- | ------------- |
+| `Connect to Network` | Tests the connection to the network via network interface. |
+| `Format Storage` | Tests that a successful storage format occurs and storage is configured correctly. |
+| `Simple MCC Initialization` | Verifies that SPDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
+| `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |
+| `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
+| `Prepare Firmware` | Prepares the firmware on the host side and calls `mbed dm` to initiate Pelion Device Management update campaign. |
+| `Download Firmware` | Downloads the firmware onto the device. |
+| `Apply Firmware` | Reset the device, verifies that the firmware has correct checksum, applies it and re-verifies the applied firmware checksum. |
+| `Pelion DM Re-register` | Re-registers the device with Pelion Device Management using the new firmware and previously bootstrapped credentials. |
+| `Consistent Identity` | Verifies that the device identity is preserved over firmware update and device reset, confirming that Root of Trust is stored in SOTP correctly. |
 
 ### Requirements
  Simple Pelion DM tests rely on the Python SDK to test the end to end solution.
@@ -92,16 +112,18 @@ Simple Pelion DM Client provides Greentea tests to test your porting efforts.
  1. Import an Simple Pelion DM Client application that contains the corresponding configuration in `mbed_app.json`. The application will include this Simple Pelion DM Client library.
 
     For examples of platform configuration, see the applications available in the [Quick-start](https://cloud.mbed.com/quick-start).
-   
- 2. Include the `mbed_cloud_dev_credentials.c` developer certificate in your application. For detailed instructions [see the documentation](https://cloud.mbed.com/docs/current/connecting/provisioning-development-devices.html#creating-and-downloading-a-developer-certificate).
 
- 3. Set a global `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
+ 2. Set a global `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
 
      ```mbed config -G CLOUD_SDK_API_KEY <API_KEY>```
 
      For instructions on how to generate an API key, please [see the documentation](https://cloud.mbed.com/docs/current/integrate-web-app/api-keys.html#generating-an-api-key).
 
-   
+ 3. Initialize your Pelion DM credentials (once per project):
+    ```mbed dm init -d "<your organization>" --model-name "<product model>" -q --force```
+
+    This will create your private/public key pair and also initialize various .c files with these credentials, so you can use Pelion DM connect and (firmware) update features.
+
  4. Remove the `main.cpp`application from the project, or ensure the content of the file is wrapped with `#ifndef MBED_TEST_MODE`.
  
  5. Compile the tests with the `MBED_TEST_MODE` compilation flag.
