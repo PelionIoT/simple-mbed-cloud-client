@@ -102,7 +102,7 @@ void spdmc_testsuite_connect(void) {
 
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
-    SlicingBlockDevice sd(bd, 0, (1024*1024*8));
+    SlicingBlockDevice sd(bd, 0, (1024*1024*2));
     FATFileSystem fs("fs", &sd);
 
     GREENTEA_TESTCASE_FINISH("Initialize Storage", 1, 0);
