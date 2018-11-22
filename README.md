@@ -70,38 +70,48 @@ $ mbed dm init -d "<your company name in Pelion DM>" --model-name "<product mode
 ```
 
 
+### Test suites - Basic
+
+| **Test suite** | **Description** |
+| ------------- | ------------- |
+| `fs-single` | Filesystem single-threaded tests with write buffer sizes - 1 byte, 4b, 16b, 64b, 256b, 1kb, 4kb, 16kb, 64kb. |
+| `fs-multi` | Filesystem multi-threaded test with write buffer sizes - 1 byte, 4b, 16b, 64b, 256b, 1kb, 4kb, 16kb, 64kb. |
+| `net-single` | Network single-threaded test with receive buffer sizes - 128 bytes, 256b, 1kb, 2kb, 4kb. |
+| `net-multi` | Network multi-threaded test for 1, 2 and 3 download threads with 1kb receive buffer size. |
+| `stress-net-fs` | Network and Filesystem single and multi-threaded tests:<ul><li>1 thread (sequential) - 1 download (1kb buffer), 1 file thread (1kb buffer)</li><li>2 parallel threads - 1 download, 1 file thread (1kb buffer)</li><li>3 parallel threads - 1 download, 2 file (256 bytes, 1 kb buffer)</li><li>4 parallel threads - 1 download, 3 file (1 byte, 256 bytes, 1kb buffer)</li></ul> |
+
 ### Test cases - Connect
 
 | **Test case** | **Description** |
 | ------------- | ------------- |
-| `Connect to Network` | Tests the connection to the network via network interface. |
-| `Initialize Storage` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
-| `Format Storage` | Tests that a successful storage format occurs and storage is configured correctly. |
-| `Simple MCC Initialization` | Verifies that SPDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
+| `Connect to <Network type>` | Tests the connection to the network via network interface. |
+| `Initialize <Blockdevice>+<Filesystem>` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
+| `Format <Filesystem>` | Tests that the blockdevice can be successfully formatted for the filesystem type. |
+| `Initialize Simple PDMC ` | Verifies that Simple PDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP.
 | `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |
 | `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
 | `Pelion DM Re-register` | Resets the device and re-registers with Pelion Device Management with previously bootstrapped credentials. |
-| `Consistent Identity` | Verifies that the device identity is preserved over device reset, confirming that Root of Trust is stored in SOTP correctly. |
-| `LwM2M GET Test` | Confirms that Pelion DM API client can perform a GET request on an LwM2M resource. |
-| `LwM2M SET Test` | Sets/changes value from the device and confirms that Pelion DM API client can observe the value changing. |
-| `LwM2M PUT Test` | Confirms that Pelion DM API client can perform a PUT request on an LwM2M resource by setting a new value. |
-| `LwM2M POST Test` | Confirms that Pelion DM API client can execute a POST on an LwM2M resource and the callback function on the device is called. |
+| `Post-reset Identity` | Verifies that the device identity is preserved over device reset, confirming that Root of Trust is stored in SOTP correctly. |
+| `ResourceLwM2M GET` | Verifies that Pelion DM API client can perform a GET request on an LwM2M resource. |
+| `ResourceLwM2M SET Test` | Sets/changes value from the device and verifies that Pelion DM API client can observe the value changing. |
+| `ResourceLwM2M PUT Test` | Verifies that Pelion DM API client can perform a PUT request on an LwM2M resource by setting a new value. |
+| `Resource LwM2M POST Test` | Verifies that Pelion DM API client can execute a POST on an LwM2M resource and the callback function on the device is called. |
 
 ### Test cases - Update
 
 | **Test case** | **Description** |
 | ------------- | ------------- |
-| `Connect to Network` | Tests the connection to the network via network interface. |
-| `Initialize Storage` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
-| `Format Storage` | Tests that a successful storage format occurs and storage is configured correctly. |
-| `Simple MCC Initialization` | Verifies that SPDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP. |
+| `Connect to <Network type>` | Tests the connection to the network via network interface. |
+| `Initialize <Blockdevice>+<Filesystem>` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
+| `Format <Filesystem>` | Tests that the blockdevice can be successfully formatted for the filesystem type. |
+| `Initialize Simple PDMC ` | Verifies that Simple PDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP.
 | `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |
 | `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
-| `Prepare Firmware` | Prepares the firmware on the host side and calls `mbed dm` to initiate Pelion Device Management update campaign. |
-| `Download Firmware` | Downloads the firmware onto the device. |
-| `Apply Firmware` | Reset the device, verifies that the firmware has correct checksum, applies it and re-verifies the applied firmware checksum. |
+| `Firmware Prepare` | Prepares the firmware on the host side and calls `mbed dm` to initiate Pelion Device Management update campaign. |
+| `Firmware Download` | Downloads the firmware onto the device. |
+| `Firmware Update` | Reset the device, verifies that the firmware has correct checksum, applies it and re-verifies the applied firmware checksum. |
 | `Pelion DM Re-register` | Re-registers the device with Pelion Device Management using the new firmware and previously bootstrapped credentials. |
-| `Consistent Identity` | Verifies that the device identity is preserved over firmware update and device reset, confirming that Root of Trust is stored in SOTP correctly. |
+| `Post-update Identity` | Verifies that the device identity is preserved over firmware update and device reset, confirming that Root of Trust is stored in SOTP correctly. |
 
 ### Requirements
  Simple Pelion DM tests rely on the Python SDK to test the end to end solution.

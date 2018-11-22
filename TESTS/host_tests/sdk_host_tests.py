@@ -96,9 +96,17 @@ class SDKTests(BaseHostTest):
         async_response = self.connectApi.get_resource_value_async(self.deviceID, value)
 
         # Set a 30 second timeout here.
-        while not async_response.is_done and timeout <= 300:
+        while not async_response.is_done and timeout <= 50:
             time.sleep(0.1)
             timeout += 1
+
+        if not async_response.is_done:
+            # Kick the REST API
+            timeout = 0
+            async_response = self.connectApi.get_resource_value_async(self.deviceID, value)
+            while not async_response.is_done and timeout <= 250:
+                time.sleep(0.1)
+                timeout += 1
 
         if async_response.is_done:
             # Send resource value back to device
@@ -217,7 +225,7 @@ class SDKTests(BaseHostTest):
 
         target = self.get_config_item('platform_name')
         image = self.get_config_item('image_path')
-        update_image = re.sub(r'(.+)\.([a-z0-9]+)$', r'\1_update.\2', image if image else "")
+        update_image = re.sub(r'(.+)\.([a-z0-9]+)$', r'\1_update.bin', image if image else "")
         if not image or not os.path.exists(update_image):
             self.logger.prn_err("ERROR: No main or update image")
             self.notify_complete(False)

@@ -1,7 +1,32 @@
+/*
+ * mbed Microcontroller Library
+ * Copyright (c) 2006-2018 ARM Limited
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "mbed.h"
 #include "FATFileSystem.h"
+#include "LittleFileSystem.h"
 #include "simple-mbed-cloud-client.h"
 #include "greentea-client/test_env.h"
+#include "common_defines_test.h"
+
+#ifndef MBED_CONF_APP_BASICS_TEST_FS_SIZE
+  #define MBED_CONF_APP_BASICS_TEST_FS_SIZE (2*1024*1024)
+#endif
 
 uint32_t test_timeout = 30*60;
 
@@ -9,13 +34,8 @@ uint32_t test_timeout = 30*60;
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 void led_thread() {
-    led1 = 1;
-    led2 = 0;
-    while (true) {
-        led1 = !led1;
-        led2 = !led2;
-        wait(0.5);
-    }
+    led1 = !led1;
+    led2 = !led1;
 }
 RawSerial pc(USBTX, USBRX);
 
@@ -25,6 +45,9 @@ void wait_nb(uint16_t ms) {
         ms--;
         wait_ms(1);
     }
+}
+void test_failed() {
+    greentea_send_kv("test_failed", 1);
 }
 
 void logger(const char* message, const char* decor) {
@@ -36,16 +59,6 @@ void logger(const char* message) {
     wait_nb(10);
     pc.printf(message);
     wait_nb(10);
-}
-
-uint32_t sec2hr(uint32_t sec) {
-    return sec / (60 * 60);
-}
-uint32_t sec2min(uint32_t sec) {
-    return (sec / 60) % 60;
-}
-uint32_t sec2sec(uint32_t sec) {
-    return sec % 60;
 }
 
 uint32_t dl_last_rpercent = 0;
@@ -60,8 +73,8 @@ void update_progress(uint32_t progress, uint32_t total) {
         float speed = float(progress) / dl_timer.read();
         float percent = float(progress) * 100 / float(total);
         uint32_t time_left = (total - progress) / speed;
-        pc.printf("[INFO] Downloading: %.2f%% (%.2fKB/s, ETA: %02d:%02d:%02d)\r\n",
-            percent, speed / 1024, sec2hr(time_left), sec2min(time_left), sec2sec(time_left));
+        pc.printf("[INFO] Downloading: %.2f%% (%.2fKB/s, ETA: %02d:%02d:%02d)\r\n", percent, speed / 1024,
+            time_left / 3600, (time_left / 60) % 60, time_left % 60);
 
         // // this is disabled until htrun is extended to support dynamic change of the duration of tests
         // // see https://github.com/ARMmbed/htrun/pull/228
@@ -79,8 +92,8 @@ void update_progress(uint32_t progress, uint32_t total) {
         dl_started = false;
         pc.printf("[INFO] Firmware download completed. %.2fKB in %.2f seconds (%.2fKB/s)\r\n",
             float(total) / 1024, dl_timer.read(), float(total) / dl_timer.read() / 1024);
-        GREENTEA_TESTCASE_FINISH("Download Firmware", true, false);
-        GREENTEA_TESTCASE_START("Apply Firmware");
+        GREENTEA_TESTCASE_FINISH("Firmware Download", true, false);
+        GREENTEA_TESTCASE_START("Firmware Update");
     }
 }
 
@@ -109,75 +122,100 @@ void spdmc_testsuite_update(void) {
     // provide manifest to greentea so it can correct show skipped and failed tests
     if (iteration == 0) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_COUNT, 10);
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to Network");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Storage");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format Storage");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Simple PDMC Initialization");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE);
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to " TEST_NETWORK_TYPE);
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format " TEST_FILESYSTEM_TYPE);
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Simple PDMC");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Bootstrap & Reg.");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Directory");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Prepare Firmware");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Download Firmware");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Apply Firmware");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Firmware Prepare");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Firmware Download");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Firmware Update");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Re-register");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Consistent Identity");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Post-update Identity");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Post-update Erase");
     } else {
-        GREENTEA_TESTCASE_FINISH("Apply Firmware", true, false);
+        GREENTEA_TESTCASE_FINISH("Firmware Update", true, false);
     }
 
-    // Start network connection test.
-    GREENTEA_TESTCASE_START("Connect to Network");
-    logger("[INFO] Attempting to connect to network.\r\n");
-
-    // Connection definition.
-    NetworkInterface *net = NetworkInterface::get_default_instance();
-    nsapi_error_t net_status = net->connect();
-
-    // Report status to console.
-    if (net_status != 0) {
-        logger("[ERROR] Device failed to connect to Network.\r\n");
-        greentea_send_kv("test_failed", 0);
-    } else {
-        logger("[INFO] Connected to network successfully. IP address: %s\n", net->get_ip_address());
-    }
-
-    GREENTEA_TESTCASE_FINISH("Connect to Network", (net_status == 0), (net_status != 0));
-
-
-    GREENTEA_TESTCASE_START("Initialize Storage");
+    GREENTEA_TESTCASE_START("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE);
     logger("[INFO] Attempting to initialize storage.\r\n");
 
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
-    SlicingBlockDevice sd(bd, 0, (1024*1024*2));
+    SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_BASICS_TEST_FS_SIZE);
+#if TEST_USE_FILESYSTEM == FAT
     FATFileSystem fs("fs", &sd);
+#else
+    LittleFileSystem fs("fs", &sd);
+#endif
 
-    GREENTEA_TESTCASE_FINISH("Initialize Storage", 1, 0);
+    GREENTEA_TESTCASE_FINISH("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, 1, 0);
+
+    if (iteration) {
+#if defined(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS) && defined(MBED_CONF_UPDATE_CLIENT_STORAGE_SIZE)
+        GREENTEA_TESTCASE_START("Post-update Erase");
+
+        uint32_t garbage[8];
+        int erase_status = bd->program(garbage, MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS, bd->get_program_size());
+        GREENTEA_TESTCASE_FINISH("Post-update Erase", (erase_status == 0), (erase_status != 0));
+#endif
+    }
+
+    // Start network connection test.
+    GREENTEA_TESTCASE_START("Connect to " TEST_NETWORK_TYPE);
+    logger("[INFO] Attempting to connect to network.\r\n");
+
+    // Connection definition.
+    NetworkInterface *net = NetworkInterface::get_default_instance();
+    nsapi_error_t net_status = -1;
+    for (int tries = 0; tries < 3; tries++) {
+        net_status = net->connect();
+        if (net_status == NSAPI_ERROR_OK) {
+            break;
+        } else {
+            logger("[WARN] Unable to connect to network. Retrying...");
+        }
+    }
+
+    // Report status to console.
+    if (net_status != 0) {
+        logger("[ERROR] Device failed to connect to Network.\r\n");
+        test_failed();
+    } else {
+        logger("[INFO] Connected to network successfully. IP address: %s\n", net->get_ip_address());
+    }
+
+    GREENTEA_TESTCASE_FINISH("Connect to " TEST_NETWORK_TYPE, (net_status == 0), (net_status != 0));
 
     if (iteration == 0) {
-        GREENTEA_TESTCASE_START("Format Storage");
+        GREENTEA_TESTCASE_START("Format " TEST_FILESYSTEM_TYPE);
+        logger("[INFO] Resetting storage to a clean state for test.\n");
 
-        int storage_status = sd.erase(0, sd.size());
-        if (storage_status == 0) {
-            storage_status = fs.format(&sd);
-            if (storage_status != 0) {
-                logger("[ERROR] Filesystem init failed\n");
+        int storage_status = fs.reformat(&sd);
+        if (storage_status != 0) {
+            storage_status = sd.erase(0, sd.size());
+            if (storage_status == 0) {
+                storage_status = fs.format(&sd);
+                if (storage_status != 0) {
+                    logger("[ERROR] Filesystem init failed\n");
+                }
             }
         }
-        logger("[INFO] Resetting storage to a clean state for test.\n");
 
         // Report status to console.
         if (storage_status == 0) {
             logger("[INFO] Storage format successful.\r\n");
         } else {
             logger("[ERROR] Storage format failed.\r\n");
-            greentea_send_kv("test_failed", 0);
+            test_failed();
         }
 
-        GREENTEA_TESTCASE_FINISH("Format Storage", (storage_status == 0), (storage_status != 0));
+        GREENTEA_TESTCASE_FINISH("Format " TEST_FILESYSTEM_TYPE, (storage_status == 0), (storage_status != 0));
     }
 
     // SimpleMbedCloudClient initialization must be successful.
-    GREENTEA_TESTCASE_START("Simple PDMC Initialization");
+    GREENTEA_TESTCASE_START("Initialize Simple PDMC");
 
     SimpleMbedCloudClient client(net, bd, &fs);
     int client_status = client.init();
@@ -188,10 +226,10 @@ void spdmc_testsuite_update(void) {
     } else {
         logger("[ERROR] Simple PDMC failed to initialize.\r\n");
         // End the test early, cannot continue without successful cloud client initialization.
-        greentea_send_kv("test_failed", 0);
+        test_failed();
     }
 
-    GREENTEA_TESTCASE_FINISH("Simple PDMC Initialization", (client_status == 0), (client_status != 0));
+    GREENTEA_TESTCASE_FINISH("Initialize Simple PDMC", (client_status == 0), (client_status != 0));
 
     //Create LwM2M resources
     MbedCloudClientResource *res_get_test;
@@ -200,15 +238,14 @@ void spdmc_testsuite_update(void) {
     res_get_test->methods(M2MMethod::GET);
     res_get_test->set_value("test0");
 
-    // Set client callback to report endpoint name.
-    client.on_registered(&registered);
-
     // Register to Pelion Device Management.
     if (iteration == 0) {
         GREENTEA_TESTCASE_START("Pelion DM Bootstrap & Reg.");
     } else {
         GREENTEA_TESTCASE_START("Pelion DM Re-register");
     }
+    // Set client callback to report endpoint name.
+    client.on_registered(&registered);
     client.register_and_connect();
 
     int timeout = 60000;
@@ -226,7 +263,7 @@ void spdmc_testsuite_update(void) {
     } else {
         client_status = -1;
         logger("[ERROR] Device failed to register.\r\n");
-        greentea_send_kv("test_failed", 0);
+        test_failed();
     }
     if (iteration == 0) {
         GREENTEA_TESTCASE_FINISH("Pelion DM Bootstrap & Reg.", (client_status == 0), (client_status != 0));
@@ -255,7 +292,7 @@ void spdmc_testsuite_update(void) {
                 } else {
                     reg_status = -1;
                     logger("[ERROR] Device could not be verified as registered in Device Directory.\r\n");
-                    greentea_send_kv("test_failed", 0);
+                    test_failed();
                 }
                 break;
             }
@@ -264,7 +301,7 @@ void spdmc_testsuite_update(void) {
         GREENTEA_TESTCASE_FINISH("Pelion DM Directory", (reg_status == 0), (reg_status != 0));
 
         if (reg_status == 0) {
-            GREENTEA_TESTCASE_START("Prepare Firmware");
+            GREENTEA_TESTCASE_START("Firmware Prepare");
             wait_nb(500);
             int fw_status;
             greentea_send_kv("firmware_prepare", 1);
@@ -280,9 +317,9 @@ void spdmc_testsuite_update(void) {
                     break;
                 }
             }
-            GREENTEA_TESTCASE_FINISH("Prepare Firmware", (fw_status == 0), (fw_status != 0));
+            GREENTEA_TESTCASE_FINISH("Firmware Prepare", (fw_status == 0), (fw_status != 0));
 
-            GREENTEA_TESTCASE_START("Download Firmware");
+            GREENTEA_TESTCASE_START("Firmware Download");
             logger("[INFO] Update campaign has started.\r\n");
             // The device should download firmware and reset at this stage
         }
@@ -292,7 +329,7 @@ void spdmc_testsuite_update(void) {
         }
     } else {
         //Start consistent identity test.
-        GREENTEA_TESTCASE_START("Consistent Identity");
+        GREENTEA_TESTCASE_START("Post-update Identity");
         int identity_status;
 
         logger("[INFO] Wait 2 seconds for Device Directory to update after reboot.\r\n");
@@ -316,7 +353,7 @@ void spdmc_testsuite_update(void) {
             }
         }
 
-        GREENTEA_TESTCASE_FINISH("Consistent Identity", (identity_status == 0), (identity_status != 0));
+        GREENTEA_TESTCASE_FINISH("Post-update Identity", (identity_status == 0), (identity_status != 0));
 
         GREENTEA_TESTSUITE_RESULT(identity_status == 0);
 
@@ -328,8 +365,8 @@ void spdmc_testsuite_update(void) {
 
 int main(void) {
     //Create a thread to blink an LED and signal that the device is alive
-    Thread thread;
-    thread.start(led_thread);
+    Ticker t;
+    t.attach(led_thread, 0.5);
 
     greentea_send_kv("device_booted", 1);
 
