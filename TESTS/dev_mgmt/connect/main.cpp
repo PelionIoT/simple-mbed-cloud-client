@@ -16,10 +16,6 @@ void led_thread() {
 }
 RawSerial pc(USBTX, USBRX);
 
-// Default storage definition.
-BlockDevice* bd = BlockDevice::get_default_instance();
-FATFileSystem fs("fs", bd);
-
 void wait_nb(uint16_t ms) {
     while (ms > 0) {
         ms--;
@@ -69,6 +65,7 @@ void spdmc_testsuite_connect(void) {
     if (iteration == 0) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_COUNT, 10);
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to Network");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Storage");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format Storage");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Simple PDMC Initialization");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Bootstrap & Reg.");
@@ -80,7 +77,6 @@ void spdmc_testsuite_connect(void) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M PUT Test");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M POST Test");
     }
-
 
     // Start network connection test.
     GREENTEA_TESTCASE_START("Connect to Network");
@@ -100,17 +96,28 @@ void spdmc_testsuite_connect(void) {
 
     GREENTEA_TESTCASE_FINISH("Connect to Network", (net_status == 0), (net_status != 0));
 
-    // Instantiate SimpleMbedCloudClient.
-    SimpleMbedCloudClient client(net, bd, &fs);
 
-    // This must be done on the first iteration to ensure that we can test writing of new credentials. It may
-    // happen twice if the reset storage flag is set to 1.
+    GREENTEA_TESTCASE_START("Initialize Storage");
+    logger("[INFO] Attempting to initialize storage.\r\n");
+
+    // Default storage definition.
+    BlockDevice* bd = BlockDevice::get_default_instance();
+    SlicingBlockDevice sd(bd, 0, (1024*1024*2));
+    FATFileSystem fs("fs", &sd);
+
+    GREENTEA_TESTCASE_FINISH("Initialize Storage", 1, 0);
+
     if (iteration == 0) {
-        logger("[INFO] Resetting storage to a clean state for test.\n");
-
         GREENTEA_TESTCASE_START("Format Storage");
-        //int storage_status = 0;
-        int storage_status = client.reformat_storage();
+
+        int storage_status = sd.erase(0, sd.size());
+        if (storage_status == 0) {
+            storage_status = fs.format(&sd);
+            if (storage_status != 0) {
+                logger("[ERROR] Filesystem init failed\n");
+            }
+        }
+        logger("[INFO] Resetting storage to a clean state for test.\n");
 
         // Report status to console.
         if (storage_status == 0) {
@@ -125,13 +132,15 @@ void spdmc_testsuite_connect(void) {
 
     // SimpleMbedCloudClient initialization must be successful.
     GREENTEA_TESTCASE_START("Simple PDMC Initialization");
+
+    SimpleMbedCloudClient client(net, bd, &fs);
     int client_status = client.init();
 
     // Report status to console.
     if (client_status == 0) {
-        logger("[INFO] Simple Mbed Cloud Client initialization successful.\r\n");
+        logger("[INFO] Simple PDMC initialization successful.\r\n");
     } else {
-        logger("[ERROR] Simple Mbed Cloud Client failed to initialize.\r\n");
+        logger("[ERROR] Simple PDMC failed to initialize.\r\n");
         // End the test early, cannot continue without successful cloud client initialization.
         greentea_send_kv("test_failed", 0);
     }
