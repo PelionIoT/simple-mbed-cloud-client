@@ -211,7 +211,7 @@ void spdmc_testsuite_update(void) {
     }
     client.register_and_connect();
 
-    int timeout = 30000;
+    int timeout = 60000;
     while (timeout && !client.is_client_registered()) {
         timeout--;
         wait_ms(1);
