@@ -1,18 +1,38 @@
+/*
+ * mbed Microcontroller Library
+ * Copyright (c) 2006-2018 ARM Limited
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "mbed.h"
 #include "FATFileSystem.h"
+#include "LittleFileSystem.h"
 #include "simple-mbed-cloud-client.h"
 #include "greentea-client/test_env.h"
+#include "common_defines_test.h"
+
+#ifndef MBED_CONF_APP_BASICS_TEST_FS_SIZE
+  #define MBED_CONF_APP_BASICS_TEST_FS_SIZE (2*1024*1024)
+#endif
 
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 void led_thread() {
-    led1 = 1;
-    led2 = 0;
-    while (true) {
-        led1 = !led1;
-        led2 = !led2;
-        wait(0.5);
-    }
+    led1 = !led1;
+    led2 = !led1;
 }
 RawSerial pc(USBTX, USBRX);
 
@@ -21,6 +41,9 @@ void wait_nb(uint16_t ms) {
         ms--;
         wait_ms(1);
     }
+}
+void test_failed() {
+    greentea_send_kv("test_failed", 1);
 }
 
 void logger(const char* message, const char* decor) {
@@ -64,74 +87,88 @@ void spdmc_testsuite_connect(void) {
     // provide manifest to greentea so it can correct show skipped and failed tests
     if (iteration == 0) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_COUNT, 10);
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to Network");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Storage");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format Storage");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Simple PDMC Initialization");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to " TEST_NETWORK_TYPE);
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE);
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format " TEST_FILESYSTEM_TYPE);
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Simple PDMC");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Bootstrap & Reg.");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Directory");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Re-register");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Consistent Identity");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M GET Test");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M SET Test");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M PUT Test");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "LwM2M POST Test");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Post-reset Identity");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Resource LwM2M GET");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Resource LwM2M SET");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Resource LwM2M PUT");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Resource LwM2M POST");
     }
 
     // Start network connection test.
-    GREENTEA_TESTCASE_START("Connect to Network");
+    GREENTEA_TESTCASE_START("Connect to " TEST_NETWORK_TYPE);
     logger("[INFO] Attempting to connect to network.\r\n");
 
     // Connection definition.
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    nsapi_error_t net_status = net->connect();
+    nsapi_error_t net_status = -1;
+    for (int tries = 0; tries < 3; tries++) {
+        net_status = net->connect();
+        if (net_status == NSAPI_ERROR_OK) {
+            break;
+        } else {
+            logger("[WARN] Unable to connect to network. Retrying...");
+        }
+    }
 
     // Report status to console.
     if (net_status != 0) {
         logger("[ERROR] Device failed to connect to Network.\r\n");
-        greentea_send_kv("test_failed", 0);
+        test_failed();
     } else {
         logger("[INFO] Connected to network successfully. IP address: %s\n", net->get_ip_address());
     }
 
-    GREENTEA_TESTCASE_FINISH("Connect to Network", (net_status == 0), (net_status != 0));
+    GREENTEA_TESTCASE_FINISH("Connect to " TEST_NETWORK_TYPE, (net_status == 0), (net_status != 0));
 
-
-    GREENTEA_TESTCASE_START("Initialize Storage");
+    GREENTEA_TESTCASE_START("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE);
     logger("[INFO] Attempting to initialize storage.\r\n");
 
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
-    SlicingBlockDevice sd(bd, 0, (1024*1024*2));
+    SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_BASICS_TEST_FS_SIZE);
+#if TEST_USE_FILESYSTEM == FAT
     FATFileSystem fs("fs", &sd);
+#else
+    LittleFileSystem fs("fs", &sd);
+#endif
 
-    GREENTEA_TESTCASE_FINISH("Initialize Storage", 1, 0);
+    GREENTEA_TESTCASE_FINISH("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, 1, 0);
 
     if (iteration == 0) {
-        GREENTEA_TESTCASE_START("Format Storage");
+        GREENTEA_TESTCASE_START("Format " TEST_FILESYSTEM_TYPE);
+        logger("[INFO] Resetting storage to a clean state for test.\n");
 
-        int storage_status = sd.erase(0, sd.size());
-        if (storage_status == 0) {
-            storage_status = fs.format(&sd);
-            if (storage_status != 0) {
-                logger("[ERROR] Filesystem init failed\n");
+        int storage_status = fs.reformat(&sd);
+        if (storage_status != 0) {
+            storage_status = sd.erase(0, sd.size());
+            if (storage_status == 0) {
+                storage_status = fs.format(&sd);
+                if (storage_status != 0) {
+                    logger("[ERROR] Filesystem init failed\n");
+                }
             }
         }
-        logger("[INFO] Resetting storage to a clean state for test.\n");
 
         // Report status to console.
         if (storage_status == 0) {
             logger("[INFO] Storage format successful.\r\n");
         } else {
             logger("[ERROR] Storage format failed.\r\n");
-            greentea_send_kv("test_failed", 0);
+            test_failed();
         }
 
-        GREENTEA_TESTCASE_FINISH("Format Storage", (storage_status == 0), (storage_status != 0));
+        GREENTEA_TESTCASE_FINISH("Format " TEST_FILESYSTEM_TYPE, (storage_status == 0), (storage_status != 0));
     }
 
     // SimpleMbedCloudClient initialization must be successful.
-    GREENTEA_TESTCASE_START("Simple PDMC Initialization");
+    GREENTEA_TESTCASE_START("Initialize Simple PDMC");
 
     SimpleMbedCloudClient client(net, bd, &fs);
     int client_status = client.init();
@@ -142,10 +179,10 @@ void spdmc_testsuite_connect(void) {
     } else {
         logger("[ERROR] Simple PDMC failed to initialize.\r\n");
         // End the test early, cannot continue without successful cloud client initialization.
-        greentea_send_kv("test_failed", 0);
+        test_failed();
     }
 
-    GREENTEA_TESTCASE_FINISH("Simple PDMC Initialization", (client_status == 0), (client_status != 0));
+    GREENTEA_TESTCASE_FINISH("Initialize Simple PDMC", (client_status == 0), (client_status != 0));
 
     //Create LwM2M resources
     MbedCloudClientResource *res_get_test;
@@ -164,21 +201,20 @@ void spdmc_testsuite_connect(void) {
     res_post_test->methods(M2MMethod::POST);
     res_post_test->attach_post_callback(post_test_callback);
 
-    // Set client callback to report endpoint name.
-    client.on_registered(&registered);
-
     // Register to Pelion Device Management.
     if (iteration == 0) {
         GREENTEA_TESTCASE_START("Pelion DM Bootstrap & Reg.");
     } else {
         GREENTEA_TESTCASE_START("Pelion DM Re-register");
     }
+    // Set client callback to report endpoint name.
+    client.on_registered(&registered);
     client.register_and_connect();
 
     int timeout = 60000;
     while (timeout && !client.is_client_registered()) {
         timeout--;
-        wait_ms(1);
+        wait_ms(10);
     }
 
     // Get registration status.
@@ -190,7 +226,7 @@ void spdmc_testsuite_connect(void) {
     } else {
         client_status = -1;
         logger("[ERROR] Device failed to register.\r\n");
-        greentea_send_kv("test_failed", 0);
+        test_failed();
     }
     if (iteration == 0) {
         GREENTEA_TESTCASE_FINISH("Pelion DM Bootstrap & Reg.", (client_status == 0), (client_status != 0));
@@ -219,7 +255,7 @@ void spdmc_testsuite_connect(void) {
                 } else {
                     reg_status = -1;
                     logger("[ERROR] Device could not be verified as registered in Device Directory.\r\n");
-                    greentea_send_kv("test_failed", 0);
+                    test_failed();
                 }
                 break;
             }
@@ -241,7 +277,7 @@ void spdmc_testsuite_connect(void) {
         }
     } else {
         //Start consistent identity test.
-        GREENTEA_TESTCASE_START("Consistent Identity");
+        GREENTEA_TESTCASE_START("Post-reset Identity");
         int identity_status;
 
         logger("[INFO] Wait 2 seconds for Device Directory to update after reboot.\r\n");
@@ -265,7 +301,7 @@ void spdmc_testsuite_connect(void) {
             }
         }
 
-        GREENTEA_TESTCASE_FINISH("Consistent Identity", (identity_status == 0), (identity_status != 0));
+        GREENTEA_TESTCASE_FINISH("Post-reset Identity", (identity_status == 0), (identity_status != 0));
 
         // LwM2M tests
         logger("[INFO] Beginning LwM2M resource tests.\r\n");
@@ -274,7 +310,7 @@ void spdmc_testsuite_connect(void) {
         wait_nb(500);
         // ---------------------------------------------
         // GET test
-        GREENTEA_TESTCASE_START("LwM2M GET Test");
+        GREENTEA_TESTCASE_START("Resource LwM2M GET");
         int get_status;
         // Read original value of /5000/0/1 and wait for Host Test to verify it read the value and send it back.
         greentea_send_kv("verify_lwm2m_get_test", "/5000/0/1");
@@ -296,13 +332,13 @@ void spdmc_testsuite_connect(void) {
                 break;
             }
         }
-        GREENTEA_TESTCASE_FINISH("LwM2M GET Test", (get_status == 0), (get_status != 0));
+        GREENTEA_TESTCASE_FINISH("Resource LwM2M GET", (get_status == 0), (get_status != 0));
 
 
         wait_nb(500);
         // ---------------------------------------------
         // SET test
-        GREENTEA_TESTCASE_START("LwM2M SET Test");
+        GREENTEA_TESTCASE_START("Resource LwM2M SET");
         int set_status;
         // Update resource /5000/0/1 from client and observe value
         res_get_test->set_value("test1");
@@ -326,13 +362,13 @@ void spdmc_testsuite_connect(void) {
                 break;
             }
         }
-        GREENTEA_TESTCASE_FINISH("LwM2M SET Test", (set_status == 0), (set_status != 0));
+        GREENTEA_TESTCASE_FINISH("Resource LwM2M SET", (set_status == 0), (set_status != 0));
 
 
         wait_nb(500);
         // ---------------------------------------------
         // PUT Test
-        GREENTEA_TESTCASE_START("LwM2M PUT Test");
+        GREENTEA_TESTCASE_START("Resource LwM2M PUT");
         int put_status;
         int current_res_value;
         int updated_res_value;
@@ -363,13 +399,13 @@ void spdmc_testsuite_connect(void) {
             }
         }
 
-        GREENTEA_TESTCASE_FINISH("LwM2M PUT Test", (put_status == 0), (put_status != 0));
+        GREENTEA_TESTCASE_FINISH("Resource LwM2M PUT", (put_status == 0), (put_status != 0));
 
 
         wait_nb(500);
         // ---------------------------------------------
         // POST test
-        GREENTEA_TESTCASE_START("LwM2M POST Test");
+        GREENTEA_TESTCASE_START("Resource LwM2M POST");
         int post_status;
 
         logger("[INFO] Executing POST on /5000/0/3 and waiting for callback function\r\n.");
@@ -394,7 +430,7 @@ void spdmc_testsuite_connect(void) {
             }
         }
 
-        GREENTEA_TESTCASE_FINISH("LwM2M POST Test", (post_status == 0), (post_status != 0));
+        GREENTEA_TESTCASE_FINISH("Resource LwM2M POST", (post_status == 0), (post_status != 0));
 
         GREENTEA_TESTSUITE_RESULT((get_status == 0) && (set_status == 0) && (put_status == 0) && (post_status == 0));
 
@@ -406,8 +442,8 @@ void spdmc_testsuite_connect(void) {
 
 int main(void) {
     //Create a thread to blink an LED and signal that the device is alive
-    Thread thread;
-    thread.start(led_thread);
+    Ticker t;
+    t.attach(led_thread, 0.5);
 
     greentea_send_kv("device_booted", 1);
 
