@@ -115,15 +115,9 @@ static control_t test_block_size_16k(const size_t call_count) {
 
     return CaseNext;
 }
-static control_t test_block_size_64k(const size_t call_count) {
-    file_test_write("mbed-file-test-0.txt", 0, story, sizeof(story), 64*1024);
-    file_test_read("mbed-file-test-0.txt", 0, story, sizeof(story), 64*1024);
-
-    return CaseNext;
-}
 
 utest::v1::status_t greentea_setup(const size_t number_of_cases) {
-    GREENTEA_SETUP(30*60, "default_auto");
+    GREENTEA_SETUP(5*60, "default_auto");
     return greentea_test_setup_handler(number_of_cases);
 }
 
@@ -137,7 +131,6 @@ Case cases[] = {
     Case(TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE " 1 file, buff  1024", test_block_size_1k),
     Case(TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE " 1 file, buff  4096", test_block_size_4k),
     Case(TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE " 1 file, buff 16384", test_block_size_16k),
-    Case(TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE " 1 file, buff 65536", test_block_size_64k),
 };
 
 Specification specification(greentea_setup, cases);
