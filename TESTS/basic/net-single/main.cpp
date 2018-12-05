@@ -106,9 +106,11 @@ utest::v1::status_t greentea_setup(const size_t number_of_cases) {
 Case cases[] = {
     Case(TEST_NETWORK_TYPE " network setup", setup_network),
     Case(TEST_NETWORK_TYPE "   128 buffer", download_128),
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE != CELLULAR
     Case(TEST_NETWORK_TYPE "   256 buffer", download_256),
     Case(TEST_NETWORK_TYPE "  1024 buffer", download_1k),
     Case(TEST_NETWORK_TYPE "  4096 buffer", download_4k),
+#endif
 };
 
 Specification specification(greentea_setup, cases);

@@ -30,7 +30,6 @@
 
 uint32_t test_timeout = 30*60;
 
-// Heartbeat blinky (to indicate that the board is still alive)
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 void led_thread() {
@@ -39,15 +38,8 @@ void led_thread() {
 }
 RawSerial pc(USBTX, USBRX);
 
-// Output / logging
 void wait_nb(uint16_t ms) {
-    while (ms > 0) {
-        ms--;
-        wait_ms(1);
-    }
-}
-void test_failed() {
-    greentea_send_kv("test_failed", 1);
+    wait_ms(ms);
 }
 
 void logger(const char* message, const char* decor) {
@@ -59,6 +51,19 @@ void logger(const char* message) {
     wait_nb(10);
     pc.printf(message);
     wait_nb(10);
+}
+void test_failed() {
+    greentea_send_kv("test_failed", 1);
+}
+void test_case_start(const char *name, size_t index) {
+    wait_nb(10);
+    pc.printf("\r\n>>> Running case #%u: '%s'...\n", index, name);
+    GREENTEA_TESTCASE_START(name);
+}
+void test_case_finish(const char *name, size_t passed, size_t failed) {
+    GREENTEA_TESTCASE_FINISH(name, passed, failed);
+    wait_nb(10);
+    pc.printf(">>> '%s': %u passed, %u failed\r\n", name, passed, failed);
 }
 
 uint32_t dl_last_rpercent = 0;
@@ -92,8 +97,8 @@ void update_progress(uint32_t progress, uint32_t total) {
         dl_started = false;
         pc.printf("[INFO] Firmware download completed. %.2fKB in %.2f seconds (%.2fKB/s)\r\n",
             float(total) / 1024, dl_timer.read(), float(total) / dl_timer.read() / 1024);
-        GREENTEA_TESTCASE_FINISH("Firmware Download", true, false);
-        GREENTEA_TESTCASE_START("Firmware Update");
+        test_case_finish("Pelion Firmware Download", 1, 0);
+        test_case_start("Pelion Firmware Update", 9);
     }
 }
 
@@ -105,6 +110,7 @@ void registered(const ConnectorClientEndpointInfo *endpoint) {
 }
 
 void spdmc_testsuite_update(void) {
+    int i = 0;
     int iteration = 0;
     char _key[20] = { };
     char _value[128] = { };
@@ -126,19 +132,19 @@ void spdmc_testsuite_update(void) {
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Connect to " TEST_NETWORK_TYPE);
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Format " TEST_FILESYSTEM_TYPE);
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Initialize Simple PDMC");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Bootstrap & Reg.");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Directory");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Firmware Prepare");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Firmware Download");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Firmware Update");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion DM Re-register");
-        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Post-update Identity");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion Bootstrap & Reg.");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion Directory");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion Firmware Prepare");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion Firmware Download");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion Firmware Update");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Pelion Re-register");
         greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Post-update Erase");
+        greentea_send_kv(GREENTEA_TEST_ENV_TESTCASE_NAME, "Post-update Identity");
     } else {
-        GREENTEA_TESTCASE_FINISH("Firmware Update", true, false);
+        test_case_finish("Pelion Firmware Update", true, false);
     }
 
-    GREENTEA_TESTCASE_START("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE);
+    test_case_start("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, 1);
     logger("[INFO] Attempting to initialize storage.\r\n");
 
     // Default storage definition.
@@ -150,20 +156,21 @@ void spdmc_testsuite_update(void) {
     LittleFileSystem fs("fs", &sd);
 #endif
 
-    GREENTEA_TESTCASE_FINISH("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, 1, 0);
+    test_case_finish("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, iteration + 1, 0);
 
+    // Corrupt the image after successful firmware update to ensure that the bootloader won't try to apply it for other test runs
     if (iteration) {
 #if defined(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS) && defined(MBED_CONF_UPDATE_CLIENT_STORAGE_SIZE)
-        GREENTEA_TESTCASE_START("Post-update Erase");
+        test_case_start("Post-update Erase", 11);
 
         uint32_t garbage[8];
         int erase_status = bd->program(garbage, MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS, bd->get_program_size());
-        GREENTEA_TESTCASE_FINISH("Post-update Erase", (erase_status == 0), (erase_status != 0));
+        test_case_finish("Post-update Erase", (erase_status == 0), (erase_status != 0));
 #endif
     }
 
     // Start network connection test.
-    GREENTEA_TESTCASE_START("Connect to " TEST_NETWORK_TYPE);
+    test_case_start("Connect to " TEST_NETWORK_TYPE, 2);
     logger("[INFO] Attempting to connect to network.\r\n");
 
     // Connection definition.
@@ -186,10 +193,10 @@ void spdmc_testsuite_update(void) {
         logger("[INFO] Connected to network successfully. IP address: %s\n", net->get_ip_address());
     }
 
-    GREENTEA_TESTCASE_FINISH("Connect to " TEST_NETWORK_TYPE, (net_status == 0), (net_status != 0));
+    test_case_finish("Connect to " TEST_NETWORK_TYPE, iteration + (net_status == 0), (net_status != 0));
 
     if (iteration == 0) {
-        GREENTEA_TESTCASE_START("Format " TEST_FILESYSTEM_TYPE);
+        test_case_start("Format " TEST_FILESYSTEM_TYPE, 3);
         logger("[INFO] Resetting storage to a clean state for test.\n");
 
         int storage_status = fs.reformat(&sd);
@@ -211,11 +218,11 @@ void spdmc_testsuite_update(void) {
             test_failed();
         }
 
-        GREENTEA_TESTCASE_FINISH("Format " TEST_FILESYSTEM_TYPE, (storage_status == 0), (storage_status != 0));
+        test_case_finish("Format " TEST_FILESYSTEM_TYPE, (storage_status == 0), (storage_status != 0));
     }
 
     // SimpleMbedCloudClient initialization must be successful.
-    GREENTEA_TESTCASE_START("Initialize Simple PDMC");
+    test_case_start("Initialize Simple PDMC", 4);
 
     SimpleMbedCloudClient client(net, bd, &fs);
     int client_status = client.init();
@@ -229,7 +236,7 @@ void spdmc_testsuite_update(void) {
         test_failed();
     }
 
-    GREENTEA_TESTCASE_FINISH("Initialize Simple PDMC", (client_status == 0), (client_status != 0));
+    test_case_finish("Initialize Simple PDMC", iteration + (client_status == 0), (client_status != 0));
 
     //Create LwM2M resources
     MbedCloudClientResource *res_get_test;
@@ -240,18 +247,17 @@ void spdmc_testsuite_update(void) {
 
     // Register to Pelion Device Management.
     if (iteration == 0) {
-        GREENTEA_TESTCASE_START("Pelion DM Bootstrap & Reg.");
+        test_case_start("Pelion Bootstrap & Reg.", 5);
     } else {
-        GREENTEA_TESTCASE_START("Pelion DM Re-register");
+        test_case_start("Pelion Re-register", 10);
     }
     // Set client callback to report endpoint name.
     client.on_registered(&registered);
     client.register_and_connect();
 
-    int timeout = 60000;
-    while (timeout && !client.is_client_registered()) {
-        timeout--;
-        wait_ms(1);
+    i = 600; // wait 60 seconds
+    while (i-- > 0 && !client.is_client_registered()) {
+        wait_ms(100);
     }
 
     // Get registration status.
@@ -266,21 +272,24 @@ void spdmc_testsuite_update(void) {
         test_failed();
     }
     if (iteration == 0) {
-        GREENTEA_TESTCASE_FINISH("Pelion DM Bootstrap & Reg.", (client_status == 0), (client_status != 0));
+        test_case_finish("Pelion Bootstrap & Reg.", (client_status == 0), (client_status != 0));
     } else {
-        GREENTEA_TESTCASE_FINISH("Pelion DM Re-register", (client_status == 0), (client_status != 0));
+        test_case_finish("Pelion Re-register", (client_status == 0), (client_status != 0));
     }
 
     if (iteration == 0) {
         //Start registration status test
-        GREENTEA_TESTCASE_START("Pelion DM Directory");
+        test_case_start("Pelion Directory", 6);
         int reg_status;
 
-        logger("[INFO] Wait 5 seconds for Device Directory to update after initial registration.\r\n");
-        wait_nb(5000);
+        logger("[INFO] Wait up to 10 seconds for Device Directory to update after initial registration.\r\n");
+        i = 100;
+        while (i-- > 0 and !endpointInfo) {
+            wait(100);
+        }
 
         // Start host tests with device id
-        logger("[INFO] Starting Pelion DM verification using Python SDK...\r\n");
+        logger("[INFO] Starting Pelion verification using Python SDK...\r\n");
         greentea_send_kv("verify_registration", endpointInfo->internal_endpoint_name.c_str());
         while (1) {
             greentea_parse_kv(_key, _value, sizeof(_key), sizeof(_value));
@@ -298,10 +307,10 @@ void spdmc_testsuite_update(void) {
             }
         }
 
-        GREENTEA_TESTCASE_FINISH("Pelion DM Directory", (reg_status == 0), (reg_status != 0));
+        test_case_finish("Pelion Directory", (reg_status == 0), (reg_status != 0));
 
         if (reg_status == 0) {
-            GREENTEA_TESTCASE_START("Firmware Prepare");
+            test_case_start("Pelion Firmware Prepare", 7);
             wait_nb(500);
             int fw_status;
             greentea_send_kv("firmware_prepare", 1);
@@ -317,9 +326,9 @@ void spdmc_testsuite_update(void) {
                     break;
                 }
             }
-            GREENTEA_TESTCASE_FINISH("Firmware Prepare", (fw_status == 0), (fw_status != 0));
+            test_case_finish("Pelion Firmware Prepare", (fw_status == 0), (fw_status != 0));
 
-            GREENTEA_TESTCASE_START("Firmware Download");
+            test_case_start("Pelion Firmware Download", 8);
             logger("[INFO] Update campaign has started.\r\n");
             // The device should download firmware and reset at this stage
         }
@@ -329,11 +338,14 @@ void spdmc_testsuite_update(void) {
         }
     } else {
         //Start consistent identity test.
-        GREENTEA_TESTCASE_START("Post-update Identity");
+        test_case_start("Post-update Identity", 12);
         int identity_status;
 
-        logger("[INFO] Wait 2 seconds for Device Directory to update after reboot.\r\n");
-        wait_nb(2000);
+        logger("[INFO] Wait up to 5 seconds for Device Directory to update after reboot.\r\n");
+        i = 50;
+        while (i-- > 0 and !endpointInfo) {
+            wait(100);
+        }
 
         // Wait for Host Test to verify consistent device ID (blocking here)
         logger("[INFO] Verifying consistent Device ID...\r\n");
@@ -353,12 +365,12 @@ void spdmc_testsuite_update(void) {
             }
         }
 
-        GREENTEA_TESTCASE_FINISH("Post-update Identity", (identity_status == 0), (identity_status != 0));
+        test_case_finish("Post-update Identity", (identity_status == 0), (identity_status != 0));
 
         GREENTEA_TESTSUITE_RESULT(identity_status == 0);
 
         while (1) {
-            wait_nb(1000);
+            wait(100);
         }
     }
 }

@@ -142,7 +142,9 @@ utest::v1::status_t greentea_setup(const size_t number_of_cases) {
 Case cases[] = {
     Case(TEST_NETWORK_TYPE " network setup", setup_network),
     Case(TEST_NETWORK_TYPE " 1 thread", download_1_thread),
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE != CELLULAR
     Case(TEST_NETWORK_TYPE " 2 threads", download_2_threads),
+#endif
     //Case(TEST_NETWORK_TYPE " 3 threads", download_3_threads),
     // 4 threads may fail due to http host limits
     //Case(TEST_NETWORK_TYPE " 4 threads", download_4_threads),
