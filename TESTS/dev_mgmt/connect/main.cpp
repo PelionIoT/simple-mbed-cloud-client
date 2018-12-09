@@ -141,10 +141,10 @@ void spdmc_testsuite_connect(void) {
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
     SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_BASICS_TEST_FS_SIZE);
-#if TEST_USE_FILESYSTEM == FAT
+#if TEST_USE_FILESYSTEM == FS_FAT
     FATFileSystem fs("fs", &sd);
 #else
-    LittleFileSystem fs("fs", &sd);
+	LittleFileSystem fs("fs", &sd);
 #endif
 
     test_case_finish("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, iteration + 1, 0);

@@ -51,7 +51,7 @@ void led_thread() {
 
 BlockDevice* bd = BlockDevice::get_default_instance();
 SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_BASICS_TEST_FS_SIZE);
-#if TEST_USE_FILESYSTEM == FAT
+#if TEST_USE_FILESYSTEM == FS_FAT
 FATFileSystem fs("sd");
 #else
 LittleFileSystem fs("sd");

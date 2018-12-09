@@ -77,8 +77,6 @@
 #define MOUNT_POINT_SECONDARY PAL_FS_MOUNT_POINT_SECONDARY
 #endif
 
-// for checking that PRIMARY_PARTITION_SIZE and SECONDARY_PARTITION_SIZE do not overflow.
-static bd_size_t mcc_platform_storage_size = 0;
 #endif // MCC_PLATFORM_PARTITION_MODE
 
 // Include this only for Developer mode and device which doesn't have in-built TRNG support
@@ -103,10 +101,16 @@ public:
 
 private:
 #if (MCC_PLATFORM_PARTITION_MODE == 1)
+    // for checking that PRIMARY_PARTITION_SIZE and SECONDARY_PARTITION_SIZE do not overflow.
+    bd_size_t mcc_platform_storage_size;
+
     // bd must be initialized before calling this function.
     int init_and_mount_partition(FileSystem **fs, BlockDevice** part, int number_of_partition, const char* mount_point);
 #endif
 
+#if ((MCC_PLATFORM_PARTITION_MODE == 1) && (MCC_PLATFORM_AUTO_PARTITION == 1))
+    int create_partitions(void);
+#endif
     int reformat_partition(FileSystem *fs, BlockDevice* part);
 
     /* help function for testing filesystem availbility by umount and

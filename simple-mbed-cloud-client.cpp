@@ -18,18 +18,12 @@
 
 #include <stdio.h>
 #include "simple-mbed-cloud-client.h"
-#include "mbed-cloud-client/MbedCloudClient.h"
-#include "m2mdevice.h"
-#include "m2mresource.h"
-#include "mbed-client/m2minterface.h"
-#include "key_config_manager.h"
-#include "resource.h"
-#include "mbed-client/m2mvector.h"
-#include "mbed_cloud_client_resource.h"
-#include "factory_configurator_client.h"
-#include "update_client_hub.h"
-#include "mbed-trace/mbed_trace.h"
 #include "mbed-trace-helper.h"
+#include "resource.h"
+
+#ifdef MBED_CLOUD_DEV_UPDATE_ID
+#include "update_client_hub.h"
+#endif
 
 #define TRACE_GROUP "SMCC"
 
@@ -71,10 +65,12 @@ SimpleMbedCloudClient::~SimpleMbedCloudClient() {
     }
 }
 
-int SimpleMbedCloudClient::init() {
+int SimpleMbedCloudClient::init(bool format) {
     // Requires DAPLink 245+ (https://github.com/ARMmbed/DAPLink/pull/364)
     // Older versions: workaround to prevent possible deletion of credentials:
     wait(1);
+
+#ifdef MBED_CLOUD_DEV_UPDATE_ID
 
     extern const uint8_t arm_uc_vendor_id[];
     extern const uint16_t arm_uc_vendor_id_size;
@@ -83,6 +79,8 @@ int SimpleMbedCloudClient::init() {
 
     ARM_UC_SetVendorId(arm_uc_vendor_id, arm_uc_vendor_id_size);
     ARM_UC_SetClassId(arm_uc_class_id, arm_uc_class_id_size);
+
+#endif
 
     // Initialize Mbed Trace for debugging
     // Create mutex for tracing to avoid broken lines in logs
@@ -131,7 +129,7 @@ int SimpleMbedCloudClient::init() {
     }
 #endif
 
-    status = verify_cloud_configuration();
+    status = verify_cloud_configuration(format);
 
     if (status != 0) {
     // This is designed to simplify user-experience by auto-formatting the
@@ -147,7 +145,7 @@ int SimpleMbedCloudClient::init() {
         if (status != FCC_STATUS_SUCCESS) {
             return status;
         }
-        status = verify_cloud_configuration();
+        status = verify_cloud_configuration(format);
         if (status != 0) {
             return status;
         }
@@ -415,11 +413,18 @@ int SimpleMbedCloudClient::reset_storage() {
     return status;
 }
 
-int SimpleMbedCloudClient::verify_cloud_configuration() {
+int SimpleMbedCloudClient::verify_cloud_configuration(bool format) {
     int status;
 
 #if MBED_CONF_APP_DEVELOPER_MODE == 1
     tr_debug("Starting developer flow");
+    if( format ) {
+        status = reset_storage();
+        if (status != FCC_STATUS_SUCCESS) {
+            tr_debug("Failed to reset storage");
+            return status;
+        }
+    }
     status = fcc_developer_flow();
     if (status == FCC_STATUS_KCM_FILE_EXIST_ERROR) {
         tr_debug("Developer credentials already exist on storage layer, verifying credentials...");

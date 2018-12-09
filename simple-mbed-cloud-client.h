@@ -38,7 +38,7 @@ public:
     SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs);
     ~SimpleMbedCloudClient();
 
-    int init();
+    int init(bool format = false);
     bool call_register();
     void close();
     void register_update();
@@ -56,7 +56,7 @@ public:
 
 private:
     int reset_storage();
-    int verify_cloud_configuration();
+    int verify_cloud_configuration(bool format);
 
     M2MObjectList                                       _obj_list;
     MbedCloudClient                                     _cloud_client;

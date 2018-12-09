@@ -150,7 +150,7 @@ void spdmc_testsuite_update(void) {
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
     SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_BASICS_TEST_FS_SIZE);
-#if TEST_USE_FILESYSTEM == FAT
+#if TEST_USE_FILESYSTEM == FS_FAT
     FATFileSystem fs("fs", &sd);
 #else
     LittleFileSystem fs("fs", &sd);

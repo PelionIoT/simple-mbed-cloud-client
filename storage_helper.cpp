@@ -22,9 +22,8 @@
 #define TRACE_GROUP "SMCS"
 
 StorageHelper::StorageHelper(BlockDevice *bd, FileSystem *fs)
-    : _bd(bd), _fs(fs)
+    : _bd(bd), _fs(fs), fs1(NULL), fs2(NULL), part1(NULL), part2(NULL)
 {
-
 }
 
 int StorageHelper::init() {
@@ -32,9 +31,8 @@ int StorageHelper::init() {
     int status = 0;
 
     if(!init_done) {
-        BlockDevice *bd = _bd;
-        if (bd) {
-            status = bd->init();
+        if (_bd) {
+            status = _bd->init();
 
             if (status != BD_ERROR_OK) {
                 tr_warn("bd->init() failed with %d", status);
@@ -43,9 +41,12 @@ int StorageHelper::init() {
 
 #if (MCC_PLATFORM_PARTITION_MODE == 1)
             // store partition size
-            mcc_platform_storage_size = bd->size();
+            mcc_platform_storage_size = _bd->size();
+            tr_debug("init() - BlockDevice init OK, bd->size() = %llu", mcc_platform_storage_size);
+#else
+            tr_debug("init() - BlockDevice init OK, bd->size() = %llu", _bd->size());
 #endif
-            tr_debug("init() - BlockDevice init OK, bd->size() = %llu", bd->size());
+
         }
 
 #if (MCC_PLATFORM_PARTITION_MODE == 1)
@@ -82,12 +83,13 @@ int StorageHelper::init() {
 #endif
 #endif // (NUMBER_OF_PARTITIONS > 0)
 #else  // Else for #if (MCC_PLATFORM_PARTITION_MODE == 1)
+
     fs1 = _fs;
-    part1 = bd;                   /* required for mcc_platform_reformat_storage */
-    status = test_filesystem(fs1, bd);
+    part1 = _bd;                   /* required for mcc_platform_reformat_storage */
+    status = test_filesystem(fs1, _bd);
     if (status != 0) {
         tr_info("Formatting...");
-        status = reformat_partition(fs1, bd);
+        status = reformat_partition(fs1, _bd);
         if (status != 0) {
             tr_warn("Formatting failed with 0x%X", status);
             return status;
@@ -177,7 +179,7 @@ int StorageHelper::init_and_mount_partition(FileSystem **fs, BlockDevice** part,
     // Init fs only once.
     if (&(**fs) == NULL) {
         if (&(**part) == NULL) {
-            *part = new MBRBlockDevice(bd, number_of_partition);
+            *part = new MBRBlockDevice(_bd, number_of_partition);
         }
         status = (**part).init();
         if (status != 0) {
@@ -244,7 +246,7 @@ int StorageHelper::test_filesystem(FileSystem *fs, BlockDevice* part) {
 
 // create partitions, initialize and mount partitions
 #if ((MCC_PLATFORM_PARTITION_MODE == 1) && (MCC_PLATFORM_AUTO_PARTITION == 1))
-static int StorageHelper::create_partitions(void) {
+int StorageHelper::create_partitions(void) {
     int status;
 
 #if (NUMBER_OF_PARTITIONS > 0)
@@ -255,7 +257,7 @@ static int StorageHelper::create_partitions(void) {
         assert(0);
     }
 
-    status = MBRBlockDevice::partition(bd, PRIMARY_PARTITION_NUMBER, 0x83, PRIMARY_PARTITION_START, PRIMARY_PARTITION_START + PRIMARY_PARTITION_SIZE);
+    status = MBRBlockDevice::partition(_bd, PRIMARY_PARTITION_NUMBER, 0x83, PRIMARY_PARTITION_START, PRIMARY_PARTITION_START + PRIMARY_PARTITION_SIZE);
     tr_debug("Creating primary partition ...");
     if (status != 0) {
         tr_warn("Creating primary partition failed 0x%X", status);
@@ -280,7 +282,7 @@ static int StorageHelper::create_partitions(void) {
     }
 
     // use cast (uint64_t) for fixing compile warning.
-    status = MBRBlockDevice::partition(bd, SECONDARY_PARTITION_NUMBER, 0x83, SECONDARY_PARTITION_START, (uint64_t) SECONDARY_PARTITION_START + (uint64_t) SECONDARY_PARTITION_SIZE);
+    status = MBRBlockDevice::partition(_bd, SECONDARY_PARTITION_NUMBER, 0x83, SECONDARY_PARTITION_START, (uint64_t) SECONDARY_PARTITION_START + (uint64_t) SECONDARY_PARTITION_SIZE);
     tr_debug("Creating secondary partition ...");
     if (status != 0) {
         tr_warn("Creating secondary partition failed 0x%X", status);
