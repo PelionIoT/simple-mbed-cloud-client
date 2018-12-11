@@ -51,6 +51,7 @@ SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice 
     _register_and_connect_called(false),
     _registered_cb(NULL),
     _unregistered_cb(NULL),
+    _error_cb(NULL),
     _net(net),
     _bd(bd),
     _fs(fs),
@@ -320,7 +321,11 @@ void SimpleMbedCloudClient::error(int error_code) {
             error = "UNKNOWN";
     }
 
-    // @todo: move this into user space
+    if (_error_cb) {
+        _error_cb(error_code, error);
+        return;
+    }
+
     printf("\n[SMCC] Error occurred : %s\n", error);
     printf("[SMCC] Error code : %d\n", error_code);
     printf("[SMCC] Error details : %s\n",_cloud_client.error_description());
@@ -369,6 +374,18 @@ void SimpleMbedCloudClient::on_registered(Callback<void(const ConnectorClientEnd
 
 void SimpleMbedCloudClient::on_unregistered(Callback<void()> cb) {
     _unregistered_cb = cb;
+}
+
+void SimpleMbedCloudClient::on_update_authorized(void (*cb)(int32_t request)) {
+    _cloud_client.set_update_authorize_handler(cb);
+}
+
+void SimpleMbedCloudClient::on_update_progress(void (*cb)(uint32_t progress, uint32_t total)) {
+    _cloud_client.set_update_progress_handler(cb);
+}
+
+void SimpleMbedCloudClient::on_error_cb(Callback<void(int, const char*)> cb) {
+    _error_cb = cb;
 }
 
 int SimpleMbedCloudClient::reformat_storage() {
