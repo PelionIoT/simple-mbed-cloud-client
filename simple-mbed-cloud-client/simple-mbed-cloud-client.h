@@ -35,27 +35,160 @@ class SimpleMbedCloudClient {
 
 public:
 
+    /**
+     * Initialize SimpleMbedCloudClient
+     *
+     * @param net A connected network interface
+     * @param bd An uninitialized block device
+     * @param fs An uninitialized file system
+     */
     SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs);
+
+    /**
+     * SimpleMbedCloudClient destructor
+     *
+     * This deletes all managed resources
+     * This does not unregister the client
+     */
     ~SimpleMbedCloudClient();
 
+    /**
+     * Initialize SimpleMbedCloudClient
+     *
+     * Sets up factory configurator client, loads root of trust,
+     * initializes storage, and loads existing developer credentials (if present)
+     *
+     * @param format If set to true, will always format the file system
+     *
+     * @returns 0 if successful, 1 if an error occured
+     */
     int init(bool format = false);
-    bool call_register();
+
+    /**
+     * Close the connection to Pelion Device Management and unregister the device
+     */
     void close();
+
+    /**
+    * Sends a registration update message to the Cloud when the client is registered
+    * successfully to the Cloud and there is no internal connection error.
+    * If the client is not connected and there is some other internal network
+    * transaction ongoing, this function triggers an error MbedCloudClient::ConnectNotAllowed.
+    */
     void register_update();
-    void client_registered();
-    void client_unregistered();
-    void error(int error_code);
+
+    /**
+     * Checks registration status
+     *
+     * @returns true when connected, false when not connected
+     */
     bool is_client_registered();
+
+    /**
+     * Whether the device has ever tried registering
+     *
+     * @returns true when registration was tried, false when not
+     */
     bool is_register_called();
+
+    /**
+     * Register with Pelion Device Management
+     * This does *not* initialize the MbedCloudClientResource added through SimpleMbedCloudClient
+     * Only call this function after you unregistered first, do NOT use it to register the first time
+     *
+     * This function returns immediately, observe on_registered and on_error for updates.
+     *
+     * @returns true if connection started, false if connection was not started
+     */
+    bool call_register();
+
+    /**
+     * Create MbedCloudClientResource on the underlying Mbed Cloud Client object,
+     * register with Pelion Device Management.
+     *
+     * This function can only be called once. If you need to re-register,
+     * use `call_register`.
+     *
+     * This function returns immediately, observe the on_registered and
+     * on_error callbacks for updates.
+     *
+     * @returns true if registration was started, false if registration was not started
+     */
     bool register_and_connect();
-    MbedCloudClient& get_cloud_client();
+
+    /**
+     * Get the underlying Mbed Cloud Client
+     */
+    MbedCloudClient *get_cloud_client();
+
+    /**
+     * Create a new resource
+     *
+     * This does not add the resource to Mbed Cloud Client until `register_and_connect`
+     * is called.
+     * Resources need to be added before first registration.
+     *
+     * @param path LwM2M path (in the form of 3200/0/5501)
+     * @param name Name of the resource (will be shown in the UI)
+     *
+     * @returns new instance of MbedCloudClientResource
+     */
     MbedCloudClientResource* create_resource(const char *path, const char *name);
+
+    /**
+     * Sets the on_registered callback
+     * This callback is fired when the device is registered with Pelion Device Management
+     *
+     * @param cb Callback
+     */
     void on_registered(Callback<void(const ConnectorClientEndpointInfo*)> cb);
+
+    /**
+     * Sets the on_unregistered callback
+     * This callback is fired when the device is unregistered with Pelion Device Management
+     *
+     * @param cb Callback
+     */
     void on_unregistered(Callback<void()> cb);
+
+    /**
+     * Format the underlying storage
+     *
+     * returns 0 if successful, non-0 if failed
+     */
     int reformat_storage();
 
 private:
+
+    /**
+     * Callback from Mbed Cloud Client, fires when device is registered
+     */
+    void client_registered();
+
+    /**
+     * Callback from Mbed Cloud Client, fires when device is unregistered
+     */
+    void client_unregistered();
+
+    /**
+     * Callback from Mbed Cloud Client, fires when error has occured
+     */
+    void error(int error_code);
+
+    /**
+     * Re-mount and re-format the storage layer
+     *
+     * @returns 0 if successful, non-0 if not successful
+     */
     int reset_storage();
+
+    /**
+     * Retrigger the developer or FCC flow
+     *
+     * @param format If set to true, will first format the storage layer
+     *
+     * @returns 0 if successful, non-0 if not succesful
+     */
     int verify_cloud_configuration(bool format);
 
     M2MObjectList                                       _obj_list;
