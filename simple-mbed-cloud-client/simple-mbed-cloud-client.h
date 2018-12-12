@@ -24,10 +24,10 @@
 #include "m2mresource.h"
 #include "mbed-client/m2minterface.h"
 #include "mbed-client/m2mvector.h"
-#include "mbed_cloud_client_resource.h"
+#include "mbed-cloud-client-resource.h"
+#include "storage-helper/storage-helper.h"
 #include "mbed.h"
 #include "NetworkInterface.h"
-#include "storage_helper.h"
 
 class MbedCloudClientResource;
 
