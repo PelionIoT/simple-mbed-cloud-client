@@ -93,10 +93,37 @@ const uint8_t MBED_CLOUD_DEV_ENTROPY[FCC_ENTROPY_SIZE] = { 0xf6, 0xd6, 0xc0, 0x0
 
 class StorageHelper {
 public:
+    /**
+     * Initializes a new StorageHelper.
+     * StorageHelper manages storage across multiple partitions,
+     * initializes SOTP, and can format the storage.
+     *
+     * @param bd An un-initialized block device
+     * @param fs An un-mounted file system
+     */
     StorageHelper(BlockDevice *bd, FileSystem *fs);
 
+    /**
+     * Initialize the storage helper, this initializes and mounts
+     * both the block device and file system
+     *
+     * @returns 0 if successful, non-0 when not successful
+     */
     int init();
+
+    /**
+     * Initialize the factory configurator client, sets entropy,
+     * and reads root of trust.
+     *
+     * @returns 0 if successful, non-0 when not successful
+     */
     int sotp_init();
+
+    /**
+     * Format the block device, and remount the filesystem
+     *
+     * @returns 0 if successful, non-0 when not successful
+     */
     int reformat_storage(void);
 
 private:
@@ -104,18 +131,45 @@ private:
     // for checking that PRIMARY_PARTITION_SIZE and SECONDARY_PARTITION_SIZE do not overflow.
     bd_size_t mcc_platform_storage_size;
 
-    // bd must be initialized before calling this function.
+    /**
+     * Initialize and mount the partition on the file system
+     * The block device must be initialized before calling this function.
+     *
+     * @param fs Pointer to an array of file systems, one per partition
+     * @param part Pointer to an array of block devices, one per partition.
+     *              All these need to be initialized.
+     * @param number_of_partitions Total number of partitions
+     * @param mount_point Mount point
+     *
+     * @returns 0 if successful, non-0 when not successful
+     */
     int init_and_mount_partition(FileSystem **fs, BlockDevice** part, int number_of_partition, const char* mount_point);
 #endif
 
 #if ((MCC_PLATFORM_PARTITION_MODE == 1) && (MCC_PLATFORM_AUTO_PARTITION == 1))
     int create_partitions(void);
 #endif
+    /**
+     * Reformat a single partition
+     *
+     * @param fs A file system
+     * @param part A block device
+     *
+     * @returns 0 if successful, non-0 when not successful
+     */
     int reformat_partition(FileSystem *fs, BlockDevice* part);
 
-    /* help function for testing filesystem availbility by umount and
-    * mount filesystem again.
-    * */
+    /**
+     * Test whether the file system is functional.
+     * This unmounts, then mounts the file system against the block device
+     *
+     * If the file system cannot be unmounted, this will be ignored.
+     *
+     * @param fs A file system
+     * @param part A block device
+     *
+     * @returns 0 if successful, non-0 when not successful
+     */
     int test_filesystem(FileSystem *fs, BlockDevice* part);
 
     BlockDevice *_bd;

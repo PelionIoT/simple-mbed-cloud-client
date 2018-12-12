@@ -375,8 +375,8 @@ int SimpleMbedCloudClient::reformat_storage() {
     return _storage.reformat_storage();
 }
 
-MbedCloudClient& SimpleMbedCloudClient::get_cloud_client() {
-    return _cloud_client;
+MbedCloudClient *SimpleMbedCloudClient::get_cloud_client() {
+    return &_cloud_client;
 }
 
 MbedCloudClientResource* SimpleMbedCloudClient::create_resource(const char *path, const char *name) {
