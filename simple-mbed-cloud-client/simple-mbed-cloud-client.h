@@ -152,6 +152,34 @@ public:
     void on_unregistered(Callback<void()> cb);
 
     /**
+     * Sets the update authorization callback
+     * This will overwrite the default authorization callback (and thus the logging)
+     *
+     * @todo, replace this with Callback<>
+     *
+     * @param cb Callback
+     */
+    void on_update_authorized(void (*cb)(int32_t request));
+
+    /**
+     * Sets the update authorization callback
+     * This will overwrite the default authorization callback (and thus the logging)
+     *
+     * @todo, replace this with Callback<>
+     *
+     * @param cb Callback
+     */
+    void on_update_progress(void (*cb)(uint32_t progress, uint32_t total));
+
+    /**
+     * Sets the error callback
+     * This will overwrite the default error logging
+     *
+     * @param cb Callback
+     */
+    void on_error_cb(Callback<void(int, const char*)> cb);
+
+    /**
      * Format the underlying storage
      *
      * returns 0 if successful, non-0 if failed
@@ -199,6 +227,7 @@ private:
     Vector<MbedCloudClientResource*>                    _resources;
     Callback<void(const ConnectorClientEndpointInfo*)>  _registered_cb;
     Callback<void()>                                    _unregistered_cb;
+    Callback<void(int, const char*)>                    _error_cb;
     NetworkInterface *                                  _net;
     BlockDevice *                                       _bd;
     FileSystem *                                        _fs;
