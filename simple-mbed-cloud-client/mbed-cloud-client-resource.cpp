@@ -17,7 +17,7 @@
 // ----------------------------------------------------------------------------
 
 #include "mbed.h"
-#include "mbed_cloud_client_resource.h"
+#include "mbed-cloud-client-resource.h"
 #include "simple-mbed-cloud-client.h"
 
 void path_to_ids(const char* path, unsigned int *object_id,

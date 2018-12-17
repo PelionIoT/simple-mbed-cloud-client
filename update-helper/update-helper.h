@@ -26,6 +26,12 @@
 #ifdef ARM_UPDATE_CLIENT_VERSION_VALUE
 #if ARM_UPDATE_CLIENT_VERSION_VALUE > 101000
 /**
+ * @brief Set the cloud client instance for the update UI to use
+ * @param[in] client pointer to the cloud client instance
+ */
+void update_helper_set_cloud_client(MbedCloudClient* client);
+
+/**
  * @brief Function for authorizing firmware downloads and reboots.
  * @param request The request under consideration.
  */
@@ -39,12 +45,6 @@ void update_authorize(int32_t request);
  * @param total Total amount of bytes to be received.
  */
 void update_progress(uint32_t progress, uint32_t total);
-
-/**
- * @brief Set the cloud client instance for the update UI to use
- * @param[in] client pointer to the cloud client instance
- */
-void update_ui_set_cloud_client(MbedCloudClient* client);
 
 
 #endif // MBED_CLOUD_CLIENT_SUPPORT_UPDATE

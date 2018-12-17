@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include "simple-mbed-cloud-client.h"
 #include "mbed-trace-helper.h"
-#include "resource.h"
+#include "resource-helper.h"
 
 #ifdef MBED_CLOUD_DEV_UPDATE_ID
 #include "update_client_hub.h"
@@ -32,7 +32,7 @@
 #endif
 
 #ifdef MBED_CLOUD_CLIENT_SUPPORT_UPDATE
-#include "update_ui_example.h"
+#include "update-helper/update-helper.h"
 #endif
 
 #ifdef MBED_HEAP_STATS_ENABLED
@@ -195,7 +195,7 @@ bool SimpleMbedCloudClient::call_register() {
        Both callbacks are completely optional. If no authorization callback
        is set, the update process will procede immediately in each step.
     */
-    update_ui_set_cloud_client(&_cloud_client);
+    update_helper_set_cloud_client(&_cloud_client);
     _cloud_client.set_update_authorize_handler(update_authorize);
     _cloud_client.set_update_progress_handler(update_progress);
 #endif

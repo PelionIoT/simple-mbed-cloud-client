@@ -16,7 +16,7 @@
 // limitations under the License.
 // ----------------------------------------------------------------------------
 
-#include "update_ui_example.h"
+#include "update-helper/update-helper.h"
 
 #ifdef MBED_CLOUD_CLIENT_SUPPORT_UPDATE
 
@@ -27,7 +27,7 @@ static MbedCloudClient* _client;
 
 #ifdef ARM_UPDATE_CLIENT_VERSION_VALUE
 #if ARM_UPDATE_CLIENT_VERSION_VALUE > 101000
-void update_ui_set_cloud_client(MbedCloudClient* client)
+void update_helper_set_cloud_client(MbedCloudClient* client)
 {
     _client = client;
 }

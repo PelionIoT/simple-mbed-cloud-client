@@ -16,7 +16,7 @@
 // limitations under the License.
 // ----------------------------------------------------------------------------
 
-#include "storage_helper.h"
+#include "storage-helper/storage-helper.h"
 #include "mbed_trace.h"
 
 #define TRACE_GROUP "SMCS"
