@@ -126,6 +126,11 @@ public:
      */
     int reformat_storage(void);
 
+    /**
+     * Initialize and format a blockdevice and file system
+     */
+    static int format(FileSystem *fs, BlockDevice *bd);
+
 private:
 #if (MCC_PLATFORM_PARTITION_MODE == 1)
     // for checking that PRIMARY_PARTITION_SIZE and SECONDARY_PARTITION_SIZE do not overflow.

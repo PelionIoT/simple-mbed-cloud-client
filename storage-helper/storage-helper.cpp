@@ -162,11 +162,37 @@ int StorageHelper::reformat_storage(void) {
 #endif
 
 #if NUMBER_OF_PARTITIONS == 0
-        status = _fs->reformat(_bd);
+        status = StorageHelper::format(_fs, _bd);
 #endif
     }
 
     tr_info("Storage reformatted (%d)", status);
+
+    return status;
+}
+
+int StorageHelper::format(FileSystem *fs, BlockDevice *bd) {
+    if (!fs || !bd) return -1;
+
+    int status;
+
+    status = bd->init();
+    if (status != 0) {
+        return status;
+    }
+
+    status = fs->mount(bd);
+    // might fail because already mounted, so ignore
+
+    status = fs->reformat(bd);
+    if (status != 0) {
+        if (bd->erase(0, bd->size()) == 0) {
+            if (fs->reformat(bd) == 0) {
+                status = 0;
+                printf("The storage reformatted successfully.\n");
+            }
+        }
+    }
 
     return status;
 }
