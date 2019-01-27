@@ -163,9 +163,17 @@ void spdmc_testsuite_update(void) {
 #if defined(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS) && defined(MBED_CONF_UPDATE_CLIENT_STORAGE_SIZE)
         test_case_start("Post-update Erase", 11);
 
-        int erase_status = bd->erase(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS, bd->get_erase_size(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS));
+        int erase_status;
+        if (bd->get_erase_value() >= 0) {
+            // Blockdevice supports a straight erase
+            erase_status = bd->erase(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS, bd->get_erase_size(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS));
+        } else {
+            // Blockdevice supports an overwrite
+            uint32_t garbage[8];
+            erase_status = bd->program(garbage, MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS, bd->get_program_size());
+        }
         if (erase_status != 0) {
-            logger("[ERROR] Post-update image invalidation failed.\n", erase_status);
+            logger("[ERROR] Post-update image invalidation failed.\n");
         }
         test_case_finish("Post-update Erase", (erase_status == 0), (erase_status != 0));
 #endif
