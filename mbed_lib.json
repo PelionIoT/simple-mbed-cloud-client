@@ -38,7 +38,7 @@
         "sotp-num-sections": {
             "help": "Number of SOTP sections",
             "macro_name": "PAL_INT_FLASH_NUM_SECTIONS",
-            "value": null
+            "value": 2
         },
         "mcc_transport_mode": {
             "help": "0 = TCP, 1 = TCP_QUEUE_MODE, 2 = UDP, 3 = UDP_QUEUE_MODE",

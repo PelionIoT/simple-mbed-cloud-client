@@ -1,24 +1,33 @@
 # Mbed Device Management
 
-(aka Simple Pelion DM Client, SPDMC, previously called Simple Mbed Cloud Client)
+(previously called Simple Mbed Cloud Client)
 
 A simple way of connecting Mbed OS 5 devices to Arm Pelion Device Management IoT platform.
 
 It's designed to:
 * Enable applications to connect and perform firmware updates in few lines of code.
 * Run separate from your main application, it does not take over your main loop.
-* Provide LWM2M resources, essentially variables that are automatically synced through Pelion Device Management Client.
+* Provide LWM2M resources, essentially variables that are automatically synced through Pelion Device Management.
 * Help users avoid doing blocking network operations in interrupt contexts, by automatically defering actions to a separate thread.
-* Provide end to end Greentea tests for Pelion Device Management Client
+* Provide end to end Greentea tests for Pelion Device Management.
 
 This library is aiming to making it trivial to expose sensors, actuators and other variables to a cloud service. For a complete Pelion Device Management CLient API, check our [documentation](https://cloud.mbed.com/docs/current/mbed-cloud-client/index.html).
 
 
 ## Table of Contents
 
-1. [Adding device management feature to your application](#adding-device-management-feature-to-your-application)
+1. [Device management for Mbed OS 5 application](#adding-device-management-feature-to-your-application)
+    * [Adding device management](#adding-device-management-feature-to-your-application)
+    * [Example applications and board specific examples](#example-applications)
 2. [Device management configuration](#device-management-configuration)
+    * [Context and terminology](#context-and-terminology)
+    * [Application configuration](#1-application-configuration)
+    * [Bootloader configuration](#2-bootloader-configuration)
+    * [Add the bootloader to your application](#3-add-the-bootloader-to-your-application)
 3. [Validation and testing](#validation-and-testing)
+    * [Test suites overview](#test-suites---basic)
+    * [Testing setup](#testing-setup)
+    * [Troubleshooting](#troubleshooting)
 4. [Known issues](#known-issues)
 
 ## Device management for your Mbed OS 5 application
@@ -52,21 +61,7 @@ Additionally, the device and any additional complementary hardware components sh
 
     If you do not have an Mbed OS project to add, you can create one with `mbed new <your_application_name>` and then the `mbed add` step above.
 
-2. Configure the API key for your Pelion Portal account.
-
-     If you don't have an API key available, then login in [Pelion IoT Platform portal](https://portal.mbedcloud.com/), navigate to 'Access Management', 'API keys' and create a new one. Then specify the API key as global `mbed` configuration:
-
-    ```
-    $ mbed config -G CLOUD_SDK_API_KEY <your-api-key>
-    ```
-
-3. Install the device management certificate:
-
-    ```
-    $ mbed dm init -d "company.com" --model-name "product-model" -q --force
-    ```
-
-4. Reference the library from your `main.cpp` file, add network and storage drivers; finally initialize the SimpleMbedCloudClient library. The is the architecture of a generic device management application with Mbed OS:
+2. Reference the library from your `main.cpp` file, add network and storage drivers; finally initialize the SimpleMbedCloudClient library. The is the architecture of a generic device management application with Mbed OS:
 
     ```cpp
     #include "simple-mbed-cloud-client.h"
@@ -84,7 +79,7 @@ Additionally, the device and any additional complementary hardware components sh
         BlockDevice *bd = BlockDevice::get_default_instance();
         <Filesystem> fs("fs", &bd);
 
-        /* Initialize Simple Pelion DM Client */
+        /* Initialize SimpleMbedCloudClient */
         SimpleMbedCloudClient client(net, &bd, &fs);
         client.init();
 
@@ -97,11 +92,52 @@ Additionally, the device and any additional complementary hardware components sh
     }
     ```
 
+3. Configure the API key for your Pelion Portal account.
+
+     If you don't have an API key available, then login in [Pelion IoT Platform portal](https://portal.mbedcloud.com/), navigate to 'Access Management', 'API keys' and create a new one. Then specify the API key as global `mbed` configuration:
+
+    ```
+    $ mbed config -G CLOUD_SDK_API_KEY <your-api-key>
+    ```
+
+4. Install the device management certificate:
+
+    ```
+    $ mbed dm init -d "<your company name.com>" --model-name "<product model identifier>"
+    ```
+
+This will create your private/public key pair and also initialize various .c files with these credentials, so you can use Connect and (firmware) Update device management features.
+
+
 ### Example applications
 
-  To help you start quickly, please refer to the following [generic application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
+To help you start quickly, please refer to the following [generic application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
 
-  Also, there are a number of board-specific applications that focus on providing more elaborate hardware features with Mbed OS and the Pelion IoT Platform. These are available in the Pelion [Quick-Start](https://cloud.mbed.com/quick-start).
+Also, there are a number of board-specific applications that focus on providing more elaborate hardware features with Mbed OS and the Pelion IoT Platform. These are available in the Pelion [Quick-Start](https://cloud.mbed.com/quick-start). See reference table below.
+
+
+### Board specific examples
+
+By board vendor alphabetic order.
+
+Platform                        |  Connectivity     | Storage   | URL to example
+--------------------------------| ----------------- | --------- | --------------------
+Nuvoton NUMAKER-IOT-M487        | WiFi              | SD Card   | https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
+Nuvoton NUMAKER-PFM-M487        | Ethernet          | SD Card   | https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
+Nuvoton NUMAKER-PFM-NUC472      | Ethernet          | SD Card   |https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
+NXP FRDM-K64F                   | Ethernet          | SD Card   | https://os.mbed.com/teams/NXP/code/mbed-cloud-connect-example-ethernet
+NXP FRDM-K66F                   | Ethernet          | SD Card   | https://os.mbed.com/teams/NXP/code/mbed-cloud-connect-example-ethernet
+Renesas GR-LCYHEE               | WiFi              | SD Card   | https://os.mbed.com/teams/Renesas/code/pelion-example-common/
+Sigma Delta Technologies SDT64B | Ethernet          | SD Card   | https://os.mbed.com/teams/Sigma-Delta-Technologies/code/pelion-example-common
+ST DISCO_L475E_IOT01A           | WiFi              | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-disco-iot01/
+ST DISCO_F413H                  | WiFi              | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST DISCO_F746NG                 | Ethernet          | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F429ZI                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F767ZI                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F746ZG                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F207ZG                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+UBlox EVK ODIN W2               | WiFi              | SD Card   | https://os.mbed.com/teams/ublox/code/pelion-example-common/
+UBlox C030 U201                 | Cellular          | SD Card   | https://os.mbed.com/teams/ublox/code/pelion-example-common/
 
 
 ## Device management configuration
@@ -121,12 +157,12 @@ For full documentation about bootloaders and firmware update, read the following
 - [Introduction to Mbed OS bootloaders](https://os.mbed.com/docs/latest/porting/bootloader.html)
 - [Creating and using an Mbed OS bootloader](https://os.mbed.com/docs/latest/tutorials/bootloader.html)
 - [Bootloader configuration in Mbed OS](https://os.mbed.com/docs/latest/tools/configuring-tools.html)
-- [Mbed Bootloader for Pelion Device Management Client](https://github.com/ARMmbed/mbed-bootloader)
+- [Mbed Bootloader for Pelion Device Management](https://github.com/ARMmbed/mbed-bootloader)
 - [Updating devices with Mbed CLI](https://os.mbed.com/docs/latest/tools/cli-update.html)
 
 To speed up things up, you can copy the configuration from the [generic application example](https://github.com/ARMmbed/pelion-ready-example/blob/master/mbed_app.json) as basis for your application configuration.
 
-### 1. Create new application configuration for your target
+### 1. Application configuration
 
 Edit the `mbed_app.json` and create a new entry under `target_overrides` with the target name for your device:
    * **Connectivity** - specify default connectivity type for your target. It's essential with targets that lack default connectivity set in    `targets.json` or for targets that support multiple connectivity options. Example:
@@ -179,7 +215,7 @@ To run the tests:
 $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect --run -v
 ```
 
-#### 2. Configure and compile bootloader
+### 2. Bootloader configuration
 
 Assuming that you've successfully passed the "Connect" tests as described above, you can enable firmware update feature by adding a bootloader to your application.
 
@@ -218,14 +254,14 @@ Assuming that you've successfully passed the "Connect" tests as described above,
 
 3. Compile the bootloader using the `bootloader_app.json` configuration you just editted:
    ```
-   mbed compile -t <TOOLCHAIN> -m <TARGET> --profile=tiny.json --app-config=<path to pelion-enablement/bootloader/bootloader_app.json>
+   $ mbed compile -t <TOOLCHAIN> -m <TARGET> --profile=tiny.json --app-config=<path to pelion-enablement/bootloader/bootloader_app.json>
    ```
 
 Note the following:
  * `mbed-bootloader` is primarily optimized for `GCC_ARM` and therefore you might want to compile it with that toolchain.
  * Before jumping to the next step, you should compile and flash the bootloader, and then connect over the virtual comport to ensure that the bootloader is running correctly. You can ignore errors related to checksum verification or falure to jump to application - these are expected at this stage.
 
-#### 3. Include the bootloader
+### 3. Add the bootloader to your application
 
 1. Copy the compiled bootloader from `mbed-bootloader-extended/BUILDS/<TARGET>/<TOOLCHAIN>-TINY/mbed-bootloader.bin` to `<your_application_name>/bootloader/mbed-bootloader-<TARGET>.bin`.
 
@@ -254,11 +290,7 @@ Refer to the next section about what tests are being executed.
 
 ## Validation and Testing
 
-Mbed Device Management provides built-in tests to help you when define your device management configuration. Before running these tests, it's recommended that you run the `mbed dm init` command, which will install all needed credentials for both Connect and Update Pelion DM features. You can use the following command:
-```
-$ mbed dm init -d "<your company name.com>" --model-name "<product model identifier>" -q --force
-```
-
+Mbed Device Management provides built-in tests to help you when define your device management configuration. Before running these tests, it's recommended that you refer to the [Testing Setup](#testing-setup) section below. 
 
 ### Test suites - Basic
 
@@ -282,10 +314,10 @@ $ mbed dm init -d "<your company name.com>" --model-name "<product model identif
 | `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
 | `Pelion DM Re-register` | Resets the device and re-registers with Pelion Device Management with previously bootstrapped credentials. |
 | `Post-reset Identity` | Verifies that the device identity is preserved over device reset, confirming that Root of Trust is stored in SOTP correctly. |
-| `ResourceLwM2M GET` | Verifies that Pelion DM API client can perform a GET request on an LwM2M resource. |
+| `ResourceLwM2M GET` | Verifies that the device can perform a GET request on an LwM2M resource. |
 | `ResourceLwM2M SET Test` | Sets/changes value from the device and verifies that Pelion DM API client can observe the value changing. |
-| `ResourceLwM2M PUT Test` | Verifies that Pelion DM API client can perform a PUT request on an LwM2M resource by setting a new value. |
-| `Resource LwM2M POST Test` | Verifies that Pelion DM API client can execute a POST on an LwM2M resource and the callback function on the device is called. |
+| `ResourceLwM2M PUT Test` | Verifies that the device can perform a PUT request on an LwM2M resource by setting a new value. |
+| `Resource LwM2M POST Test` | Verifies that the device can execute a POST on an LwM2M resource and the callback function on the device is called. |
 
 ### Test cases - Update
 
@@ -312,37 +344,39 @@ Mbed Device Management tests rely on the Python SDK to test the end to end solut
 
 ### Testing Setup
 
-1. Import an Simple Pelion DM Client application that contains the corresponding configuration in `mbed_app.json`. The application will include this Simple Pelion DM Client library.
+1. Import an example application for Pelion Device Management that contains the corresponding configuration for your target. 
 
-    For examples of platform configuration, see the applications available in the [Quick-start](https://cloud.mbed.com/quick-start).
+  Please refer to the following [generic application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
+
+  Also, there are a number of board-specific applications that focus on providing more elaborate hardware features with Mbed OS and the Pelion IoT Platform. These are available in the Pelion [Quick-Start](https://cloud.mbed.com/quick-start).
 
 2. Set a global `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
-```
-$ mbed config -G CLOUD_SDK_API_KEY <API_KEY>
-```
+    ```
+    $ mbed config -G CLOUD_SDK_API_KEY <API_KEY>
+    ```
 
-For instructions on how to generate an API key, please [see the documentation](https://cloud.mbed.com/docs/current/integrate-web-app/api-keys.html#generating-an-api-key).
+    For instructions on how to generate an API key, please [see the documentation](https://cloud.mbed.com/docs/current/integrate-web-app/api-keys.html#generating-an-api-key).
 
 3. Initialize your Pelion DM credentials (once per project):
-```
-$ mbed dm init -d "<your organization>" --model-name "<product model>" -q --force
-```
+    ```
+    $ mbed dm init -d "<your company name.com>" --model-name "<product model identifier>"
+    ```
 
-This will create your private/public key pair and also initialize various .c files with these credentials, so you can use Pelion DM connect and (firmware) update features.
+    This will create your private/public key pair and also initialize various .c files with these credentials, so you can use Connect and (firmware) Update device management features.
 
 4. Remove the `main.cpp` application from the project, or ensure the content of the file is wrapped with `#ifndef MBED_TEST_MODE`.
  
 5. Compile the tests with the `MBED_TEST_MODE` compilation flag.
-    
-```
-$ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
-```
+
+    ```
+    $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
+    ```
 
 5. Run the Simple Pelion Device Management Client tests from the application directory:
 
-```
-$ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v
-```
+    ```
+    $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v
+    ```
 
 ### Troubleshooting
 Below are a list of common issues and fixes for using Simple Pelion DM Client.
