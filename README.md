@@ -16,7 +16,7 @@ This library is aiming to making it trivial to expose sensors, actuators and oth
 
 ## Table of Contents
 
-1. [Device management for Mbed OS 5 application](#adding-device-management-feature-to-your-application)
+1. [Device management for your Mbed OS application](#device-management-for-your-mbed-os-application)
     * [Adding device management](#adding-device-management-feature-to-your-application)
     * [Example applications and board specific examples](#example-applications)
 2. [Device management configuration](#device-management-configuration)
