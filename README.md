@@ -2,7 +2,7 @@
 
 (previously called Simple Mbed Cloud Client)
 
-A simple way of connecting Mbed OS 5 devices to Arm Pelion Device Management IoT platform.
+A simple way of connecting Mbed OS devices to Arm Pelion Device Management IoT platform.
 
 It's designed to:
 * Enable applications to connect and perform firmware updates in few lines of code.
@@ -30,7 +30,7 @@ This library is aiming to making it trivial to expose sensors, actuators and oth
     * [Troubleshooting](#troubleshooting)
 4. [Known issues](#known-issues)
 
-## Device management for your Mbed OS 5 application
+## Device management for your Mbed OS application
 
 First and foremost, it's important to note that not every device (microcontroller, module, board) is capable of running device management features. And while some hardware capabilities can be easily added or extended - like connectivity, storage, TRNG - others are impossible or inconvenient to extend (e.g. RAM/Flash).
 
