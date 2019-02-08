@@ -11,7 +11,7 @@ It's designed to:
 * Help users avoid doing blocking network operations in interrupt contexts, by automatically defering actions to a separate thread.
 * Provide end to end Greentea tests for Pelion Device Management.
 
-This library is aiming to making it trivial to expose sensors, actuators and other variables to a cloud service. For a complete Pelion Device Management CLient API, check our [documentation](https://cloud.mbed.com/docs/current/mbed-cloud-client/index.html).
+This library is aiming to making it trivial to expose sensors, actuators and other variables to a cloud service. For a complete Pelion Device Management Client API, check our [documentation](https://cloud.mbed.com/docs/current/mbed-cloud-client/index.html).
 
 
 ## Table of Contents
@@ -372,14 +372,14 @@ Mbed Device Management tests rely on the Python SDK to test the end to end solut
     $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
     ```
 
-5. Run the Simple Pelion Device Management Client tests from the application directory:
+5. Run the tests from the application directory:
 
     ```
     $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v
     ```
 
 ### Troubleshooting
-Below are a list of common issues and fixes for using Simple Pelion DM Client.
+Below are a list of common issues and fixes.
 
 #### Autoformatting failed with error -5005
 This is due to an issue with the storage block device. If using an SD card, ensure that the SD card is seated properly.
@@ -390,7 +390,7 @@ Occasionally, if the test failed during a previous attempt, the SMCC Greentea te
 #### Device identity is inconsistent
 If your device ID in Pelion Device Management is inconsistent over a device reset, it could be because it is failing to open the credentials on the storage held in the Enhanced Secure File System. Typically, this is because the device cannot access the Root of Trust stored in SOTP.
 
-One way to verify this is to see if Simple Pelion DM Client autoformats the storage after a device reset when `format-storage-layer-on-error` is set to `1` in `mbed_app.json`.  It would appear on the serial terminal output from the device as the following:
+One way to verify this is to see if the storage is reformatted after a device reset when `format-storage-layer-on-error` is set to `1` in `mbed_app.json`.  It would appear on the serial terminal output from the device as the following:
 ```
 [SMCC] Initializing storage.
 [SMCC] Autoformatting the storage.
