@@ -1,4 +1,4 @@
-# Mbed Device Management
+# Device Management for Mbed OS
 
 (previously called Simple Mbed Cloud Client)
 
