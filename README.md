@@ -2,7 +2,7 @@
 
 (previously called Simple Mbed Cloud Client)
 
-A simple way of connecting Mbed OS devices to Arm Pelion Device Management IoT platform.
+A simple and quick way of adding device management capabilities for Mbed OS devices using the Arm Pelion Device Management IoT platform.
 
 It's designed to:
 * Enable applications to connect and perform firmware updates in few lines of code.
