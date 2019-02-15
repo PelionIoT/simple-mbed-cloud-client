@@ -152,7 +152,7 @@ class SDKTests(BaseHostTest):
             self.send_safe("timeout", 0)
             return
 
-        updated_value = str(int(resource_value.value) + 5)
+        updated_value = int(resource_value.value) + 5
 
         # Set new resource value from cloud
         async_response = self.connectApi.set_resource_value_async(self.deviceID, value, updated_value)
