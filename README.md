@@ -1,67 +1,51 @@
 # Device Management for Mbed OS
 
-(previously called Simple Mbed Cloud Client)
+(This was previously called Simple Mbed Cloud Client.)
 
-A simple and quick way of adding device management capabilities for Mbed OS devices using the Arm Pelion Device Management IoT platform.
+This provides a way to add device management capabilities to Mbed OS devices using the Arm Pelion Device Management IoT platform.
 
-It's designed to:
-* Enable applications to connect and perform firmware updates in few lines of code.
-* Run separate from your main application, it does not take over your main loop.
-* Provide LWM2M resources, essentially variables that are automatically synced through Pelion Device Management.
-* Help users avoid doing blocking network operations in interrupt contexts, by automatically defering actions to a separate thread.
-* Provide end to end Greentea tests for Pelion Device Management.
+It:
 
-This library is aiming to making it trivial to expose sensors, actuators and other variables to a cloud service. For a complete Pelion Device Management Client API, check our [documentation](https://cloud.mbed.com/docs/current/mbed-cloud-client/index.html).
+- Enables applications to connect and perform firmware updates in a few lines of code.
+- Runs separately from your main application; it does not take over your main loop.
+- Provides LWM2M resources, variables that sync automatically through Pelion Device Management.
+- Helps users avoid doing blocking network operations in interrupt contexts, by automatically defering actions to a separate thread.
+- Provides end-to-end Greentea tests for Pelion Device Management.
 
-
-## Table of Contents
-
-1. [Device management for your Mbed OS application](#device-management-for-your-mbed-os-application)
-    * [Adding device management](#adding-device-management-feature-to-your-application)
-    * [Example applications and board specific examples](#example-applications)
-2. [Device management configuration](#device-management-configuration)
-    * [Context and terminology](#context-and-terminology)
-    * [Application configuration](#1-application-configuration)
-    * [Bootloader configuration](#2-bootloader-configuration)
-    * [Add the bootloader to your application](#3-add-the-bootloader-to-your-application)
-3. [Validation and testing](#validation-and-testing)
-    * [Test suites overview](#test-suites---basic)
-    * [Testing setup](#testing-setup)
-    * [Troubleshooting](#troubleshooting)
-4. [Known issues](#known-issues)
+This library makes it trivial to expose sensors, actuators and other variables to a cloud service. For a complete Pelion Device Management Client API, please see our [documentation](https://cloud.mbed.com/docs/current/mbed-cloud-client/index.html).
 
 ## Device management for your Mbed OS application
 
-First and foremost, it's important to note that not every device (microcontroller, module, board) is capable of running device management features. And while some hardware capabilities can be easily added or extended - like connectivity, storage, TRNG - others are impossible or inconvenient to extend (e.g. RAM/Flash).
+Not every device (microcontroller, module or board) is capable of running device management features. Although you can add or extend some hardware capabilities, such as connectivity, storage and TRNG, others are impossible or inconvenient to extend (for example, RAM or flash).
 
-Here's a list of minimum of requirements to add device management feature to your application:
-* RAM: 128K or more
-* Flash: 512K or more
-* Real Time Clock (RTC)
-* (optional but recommended) True Random Number Generator (TRNG)
-* A storage device - SDcard, SPI Flash, QSPI Flash, Data Flash
-* IP connectivity - Ethernet, Wi-Fi, Cellular, 6LoWPAN, Thread
+The minimum requirements to add device management feature to your application are:
 
-Additionally, the device and any additional complementary hardware components should be supported and provided in the latest releases of Mbed OS, or have support for the APIs provided in the latest releases of Mbed OS.
+- RAM: 128K or more.
+- Flash: 512K or more.
+- Real Time Clock (RTC).
+- (Optional but recommended) True Random Number Generator (TRNG).
+- A storage device: SD card, SPI flash, QSPI flash or data flash.
+- IP connectivity: Ethernet, Wi-Fi, cellular, 6LoWPAN or Thread.
 
-#### Useful references
+Additionally, we recommend the latest version of Mbed OS support the device and any additional complementary hardware components, or that they have support for the APIs provided in the latest releases of Mbed OS.
 
-* Check which Mbed OS platforms are supported in the [Pelion Device Management quick-start guide](https://cloud.mbed.com/quick-start).
-* Check which storage options are available [here](https://os.mbed.com/docs/latest/reference/storage.html).
-* Check which network options are available [here](https://os.mbed.com/docs/latest/reference/network-socket.html).
+Useful references:
 
+- Check which Mbed OS platforms are supported in the [Pelion Device Management quick start guide](https://cloud.mbed.com/quick-start).
+- Check the [storage options available](https://os.mbed.com/docs/latest/reference/storage.html).
+- Check the [network options available](https://os.mbed.com/docs/latest/reference/network-socket.html).
 
-### Adding device management feature to your application
+### Adding a device management feature to your application
 
 1. Add this library to your Mbed OS project:
+   
+   ```
+   $ mbed add https://github.com/ARMmbed/simple-mbed-cloud-client
+   ```
+   
+   If you do not have an Mbed OS project to add, you can create one with `mbed new <your_application_name>` and then the `mbed add` step above.
 
-    ```
-    $ mbed add https://github.com/ARMmbed/simple-mbed-cloud-client
-    ```
-
-    If you do not have an Mbed OS project to add, you can create one with `mbed new <your_application_name>` and then the `mbed add` step above.
-
-2. Reference the library from your `main.cpp` file, add network and storage drivers; finally initialize the SimpleMbedCloudClient library. The is the architecture of a generic device management application with Mbed OS:
+1. Reference the library from the `main.cpp` file, and add network and storage drivers. Finally, initialize the SimpleMbedCloudClient library. This is the architecture of a device management application with Mbed OS:
 
     ```cpp
     #include "simple-mbed-cloud-client.h"
@@ -92,94 +76,93 @@ Additionally, the device and any additional complementary hardware components sh
     }
     ```
 
-3. Configure the API key for your Pelion Portal account.
+1. Configure the API key for your Pelion Portal account.
 
-     If you don't have an API key available, then login in [Pelion IoT Platform portal](https://portal.mbedcloud.com/), navigate to 'Access Management', 'API keys' and create a new one. Then specify the API key as global `mbed` configuration:
+   If you don't have an API key available, then log in to the [Pelion IoT Platform portal](https://portal.mbedcloud.com/), navigate to `Access Management` and `API keys`, and create a new one. Then specify the API key as the global `mbed` configuration:
 
     ```
     $ mbed config -G CLOUD_SDK_API_KEY <your-api-key>
     ```
 
-4. Install the device management certificate:
+1. Install the device management certificate:
 
     ```
     $ mbed dm init -d "<your company name.com>" --model-name "<product model identifier>"
     ```
 
-This will create your private/public key pair and also initialize various .c files with these credentials, so you can use Connect and (firmware) Update device management features.
-
+This creates your private and public key pair and also initialize various `.c` files with these credentials, so you can use Connect and (firmware) Update device management features.
 
 ### Example applications
 
-To help you start quickly, please refer to the following [generic application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
+To help you start quickly, please refer to the following [application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
 
-Also, there are a number of board-specific applications that focus on providing more elaborate hardware features with Mbed OS and the Pelion IoT Platform. These are available in the Pelion [Quick-Start](https://cloud.mbed.com/quick-start). See reference table below.
+Also, there are a number of board-specific applications that focus on providing more elaborate hardware features with Mbed OS and the Pelion IoT Platform. These are available in the Pelion [quick start](https://cloud.mbed.com/quick-start). Please see the reference table below, organized by vendor name, for details:
 
-
-### Board specific examples
-
-By board vendor alphabetic order.
-
-Platform                        |  Connectivity     | Storage   | URL to example
---------------------------------| ----------------- | --------- | --------------------
-Nuvoton NUMAKER-IOT-M487        | WiFi              | SD Card   | https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
-Nuvoton NUMAKER-PFM-M487        | Ethernet          | SD Card   | https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
-Nuvoton NUMAKER-PFM-NUC472      | Ethernet          | SD Card   |https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
-NXP FRDM-K64F                   | Ethernet          | SD Card   | https://os.mbed.com/teams/NXP/code/mbed-cloud-connect-example-ethernet
-NXP FRDM-K66F                   | Ethernet          | SD Card   | https://os.mbed.com/teams/NXP/code/mbed-cloud-connect-example-ethernet
-Renesas GR-LCYHEE               | WiFi              | SD Card   | https://os.mbed.com/teams/Renesas/code/pelion-example-common/
-Sigma Delta Technologies SDT64B | Ethernet          | SD Card   | https://os.mbed.com/teams/Sigma-Delta-Technologies/code/pelion-example-common
-ST DISCO_L475E_IOT01A           | WiFi              | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-disco-iot01/
-ST DISCO_F413H                  | WiFi              | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-common/
-ST DISCO_F746NG                 | Ethernet          | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-common/
-ST NUCLEO_F429ZI                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
-ST NUCLEO_F767ZI                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
-ST NUCLEO_F746ZG                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
-ST NUCLEO_F207ZG                | Ethernet          | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
-UBlox EVK ODIN W2               | WiFi              | SD Card   | https://os.mbed.com/teams/ublox/code/pelion-example-common/
-UBlox C030 U201                 | Cellular          | SD Card   | https://os.mbed.com/teams/ublox/code/pelion-example-common/
-
+Platform                        |  Connectivity      | Storage   | Example URL
+--------------------------------| -------------------| --------- | --------------------
+Nuvoton NUMAKER-IOT-M487        | Wi-Fi              | SD Card   | https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
+Nuvoton NUMAKER-PFM-M487        | Ethernet           | SD Card   | https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
+Nuvoton NUMAKER-PFM-NUC472      | Ethernet           | SD Card   |https://os.mbed.com/teams/Nuvoton/code/pelion-example-common/
+NXP FRDM-K64F                   | Ethernet           | SD Card   | https://os.mbed.com/teams/NXP/code/mbed-cloud-connect-example-ethernet
+NXP FRDM-K66F                   | Ethernet           | SD Card   | https://os.mbed.com/teams/NXP/code/mbed-cloud-connect-example-ethernet
+Renesas GR-LCYHEE               | Wi-Fi              | SD Card   | https://os.mbed.com/teams/Renesas/code/pelion-example-common/
+Sigma Delta Technologies SDT64B | Ethernet           | SD Card   | https://os.mbed.com/teams/Sigma-Delta-Technologies/code/pelion-example-common
+ST DISCO_L475E_IOT01A           | Wi-Fi              | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-disco-iot01/
+ST DISCO_F413H                  | Wi-Fi              | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST DISCO_F746NG                 | Ethernet           | QSPI      | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F429ZI                | Ethernet           | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F767ZI                | Ethernet           | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F746ZG                | Ethernet           | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+ST NUCLEO_F207ZG                | Ethernet           | SD Card   | https://os.mbed.com/teams/ST/code/pelion-example-common/
+UBlox EVK ODIN W2               | Wi-Fi              | SD Card   | https://os.mbed.com/teams/ublox/code/pelion-example-common/
+UBlox C030 U201                 | Cellular           | SD Card   | https://os.mbed.com/teams/ublox/code/pelion-example-common/
 
 ## Device management configuration
 
-### Context and terminology 
+The device management configuration has five distinct areas:
 
-The device management configuration can be divided into 5 distinct areas:
- * Connectivity related - the transport type for the device to connect to the device management service.
- * Storage related - the storage type and writing which will be used for both the credentials and the firmware storage.
- * Flash geometry related - the device flash "sandbox" for bootloader, application header, application image and also 2 SOTP regions.
- * SOTP related - the address and size of the SOTP regions in flash which will be used to store the device special key used to decrypt the credentials storage.
- * Bootloader related - the bootloader image, application and header offset.
+- Connectivity - the transport type for the device to connect to the device management service.
+- Storage - the storage type and writing used for both the credentials and the firmware storage.
+- Flash geometry - the device flash "sandbox" for bootloader, application header, application image and two SOTP regions.
+- SOTP - the address and size of the SOTP regions in flash used to store the device special key that decrypts the credentials storage.
+- Bootloader - the bootloader image, application and header offset.
 
-Except for connectivity, the majority of the configuration is shared between the application and bootloader, which is to ensure that the bootloader can correctly find, verify, authorize and apply an update to the device application.
+Except for connectivity, the majority of the configuration is shared between the application and bootloader, which ensures the bootloader can correctly find, verify, authorize and apply an update to the device application.
 
-For full documentation about bootloaders and firmware update, read the following documents:
-- [Introduction to Mbed OS bootloaders](https://os.mbed.com/docs/latest/porting/bootloader.html)
-- [Creating and using an Mbed OS bootloader](https://os.mbed.com/docs/latest/tutorials/bootloader.html)
-- [Bootloader configuration in Mbed OS](https://os.mbed.com/docs/latest/tools/configuring-tools.html)
-- [Mbed Bootloader for Pelion Device Management](https://github.com/ARMmbed/mbed-bootloader)
-- [Updating devices with Mbed CLI](https://os.mbed.com/docs/latest/tools/cli-update.html)
+For full documentation about bootloaders and firmware update, please read the following documents:
 
-To speed up things up, you can copy the configuration from the [generic application example](https://github.com/ARMmbed/pelion-ready-example/blob/master/mbed_app.json) as basis for your application configuration.
+- [Introduction to Mbed OS bootloaders](https://os.mbed.com/docs/latest/porting/bootloader.html).
+- [Creating and using an Mbed OS bootloader](https://os.mbed.com/docs/latest/tutorials/bootloader.html).
+- [Bootloader configuration in Mbed OS](https://os.mbed.com/docs/latest/tools/configuring-tools.html).
+- [Mbed Bootloader for Pelion Device Management](https://github.com/ARMmbed/mbed-bootloader).
+- [Updating devices with Mbed CLI](https://os.mbed.com/docs/latest/tools/cli-update.html).
+
+To hasten this process, you can copy the configuration from the [application example](https://github.com/ARMmbed/pelion-ready-example/blob/master/mbed_app.json) as the basis for your application configuration.
 
 ### 1. Application configuration
 
-Edit the `mbed_app.json` and create a new entry under `target_overrides` with the target name for your device:
-   * **Connectivity** - specify default connectivity type for your target. It's essential with targets that lack default connectivity set in    `targets.json` or for targets that support multiple connectivity options. Example:
+Edit the `mbed_app.json` file, and create a new entry under `target_overrides` with the target name for your device:
+
+- **Connectivity** - Specify the default connectivity type for your target. It's essential with targets that lack default connectivity set in `targets.json` or for targets that support multiple connectivity options. For example:
+   
    ```
             "target.network-default-interface-type" : "ETHERNET",
    ```
-   At the time of this writing, the possible options are `ETHERNET`, `WIFI`, `CELLULAR`.
+      
+   The possible options are `ETHERNET`, `WIFI` and `CELLULAR`.
    
-   Depending on connectivity type, you might have to specify more config options, e.g. see already defined `CELLULAR` targets in `mbed_app.json`.
+   Depending on connectivity type, you might have to specify more config options. For an example, please see the defined `CELLULAR` targets in `mbed_app.json`.
 
-   * **Storage** - specify storage blockdevice type, which dynamically adds the blockdevice driver you specified at compile time. Example:
+- **Storage** - Specify the storage block device type, which dynamically adds the block device driver you specified at compile time. For example:
+
    ```
             "target.components_add" : ["SD"],
    ```
-   Valid options are `SD`, `SPIF`, `QSPIF`, `FLASHIAP` (not recommended). Check more available options under https://github.com/ARMmbed/mbed-os/tree/master/components/storage/blockdevice.
 
-   You will also have to specify blockdevice pin configuration, which may be very different from one blockdevice type to another. Here's an example for `SD`:
+   Valid options are `SD`, `SPIF`, `QSPIF` and `FLASHIAP` (not recommended). For more available options, please see the [block device components](https://github.com/ARMmbed/mbed-os/tree/master/components/storage/blockdevice).
+
+   You also have to specify block device pin configuration, which may vary from one block device type to another. Here's an example for `SD`:
+      
    ```
             "sd.SPI_MOSI"                      : "PE_6",
             "sd.SPI_MISO"                      : "PE_5",
@@ -187,13 +170,15 @@ Edit the `mbed_app.json` and create a new entry under `target_overrides` with th
             "sd.SPI_CS"                        : "PE_4",
    ```
    
-   * **Flash** - define the basics for the microcontroller flash, e.g.:
+- **Flash** - Define the basics for the microcontroller flash. For example:
+   
    ```
             "device_management.flash-start-address"              : "0x08000000",
             "device_management.flash-size"                       : "(2048*1024)",
    ```
    
-   * **SOTP** - define 2 SOTP/NVStore regions which will be used for Mbed OS Device Management to store it's special keys which are used to encrypt the data stored on the storage. Use the last 2 Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. Example:
+- **SOTP** - Define two SOTP or NVStore regions that Mbed OS Device Management will use to store its special keys, which encrypt the data stored. Use the last two Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. For example:
+
    ```
             "device_management.sotp-section-1-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 2*(128*1024))",
             "device_management.sotp-section-1-size"               : "(128*1024)",
@@ -201,49 +186,56 @@ Edit the `mbed_app.json` and create a new entry under `target_overrides` with th
             "device_management.sotp-section-2-size"               : "(128*1024)",
             "device_management.sotp-num-sections" : 2
    ```
-   `*-address` defines the start of the Flash sector and `*-size` defines the actual sector size. Currently `sotp-num-sections` should always be set to `2`.
 
-At this point, it's recommended that you run the "connect" test suite, which verifies that the device can successfully bootstrap, register and send/receive data from Pelion Device Management service with the provided configuration.
+`*-address` defines the start of the Flash sector, and `*-size` defines the actual sector size. `sotp-num-sections` should always be set to `2`.
+
+At this point, we recommend you run the "connect" test suite, which verifies that the device can successfully bootstrap, register and send and receive data from Pelion Device Management service with the provided configuration.
 
 If you already configured your Pelion API key and initialized your credentials as described in the [previous section](#adding-device-management-feature-to-your-application), you can compile the "Connect" tests using:
+
 ```
 $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect -DMBED_TEST_MODE --compile
 ```
 
 To run the tests:
+
 ```
 $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect --run -v
 ```
 
 ### 2. Bootloader configuration
 
-Assuming that you've successfully passed the "Connect" tests as described above, you can enable firmware update feature by adding a bootloader to your application.
+After you've successfully passed the "Connect" tests as described above, you can enable firmware update feature by adding a bootloader to your application.
 
-1. Import as a new application the official [mbed-bootloader](https://github.com/ARMmbed/mbed-bootloader/) repository or the [mbed-bootloader-extended](https://github.com/ARMmbed/mbed-bootloader-extended/) repository that builds on top of `mbed-bootloader` and extends the support for filesystems and storage drivers. You can do this with ```mbed import mbed-bootloader-extended```.
+1. Import as a new application the official [mbed-bootloader](https://github.com/ARMmbed/mbed-bootloader/) repository or the [mbed-bootloader-extended](https://github.com/ARMmbed/mbed-bootloader-extended/) repository that builds on top of `mbed-bootloader` and extends the support for file systems and storage drivers. You can do this with `mbed import mbed-bootloader-extended`.
 
-1. Inside the imported bootloader application, edit the application configuration, e.g. `mbed-bootloader-extended/mbed_app.json`, add a new target entry similar to the step above and specify:
+1. Inside the imported bootloader application, and edit the application configuration, for example `mbed-bootloader-extended/mbed_app.json`. Add a new target entry similar to the step above, and specify:
 
-   * **Flash** - define the basics for the microcontroller flash (the same as in `mbed_app.json`), e.g.:
-    ```
+   - **Flash** - Define the basics for the microcontroller flash (the same as in `mbed_app.json`). For example:
+   
+      ```
             "flash-start-address"              : "0x08000000",
             "flash-size"                       : "(2048*1024)",
-    ```
+      ```
 
-   * **SOTP** - similar to the **SOTP** step above, specify the location of the SOTP key storage. Note that in the bootloader, the variables are named differently. We should try to use the last 2 Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. Example:
+   - **SOTP** - Similar to the **SOTP** step above, specify the location of the SOTP key storage. In the bootloader, the variables are named differently. Try to use the last two Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. For example:
+   
     ```
             "nvstore.area_1_address"           : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 2*(128*1024))",
             "nvstore.area_1_size"              : "(128*1024)",
             "nvstore.area_2_address"           : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 1*(128*1024))", "nvstore.area_2_size" : "(128*1024)",
     ```
 
-    * **Application offset** - specify start address for the application and also the update-client meta info. As these are automatically calculated, you could copy the ones below:
+    - **Application offset** - Specify start address for the application, and also the update-client meta information. As these are automatically calculated, you can copy the ones below:
+    
     ```
             "update-client.application-details": "(MBED_CONF_APP_FLASH_START_ADDRESS + 64*1024)",
             "application-start-address"        : "(MBED_CONF_APP_FLASH_START_ADDRESS + 65*1024)",
             "max-application-size"             : "DEFAULT_MAX_APPLICATION_SIZE",
     ```
     
-    * **Storage** - specify blockdevice pin configuration, exactly as you defined it in the `mbed_app.json` file. Example:
+    - **Storage** - Specify the block device pin configuration, exactly as you defined it in the `mbed_app.json` file. For example:
+    
     ```
             "target.components_add"            : ["SD"],
             "sd.SPI_MOSI"                      : "PE_6",
@@ -252,145 +244,157 @@ Assuming that you've successfully passed the "Connect" tests as described above,
             "sd.SPI_CS"                        : "PE_4"
     ```
 
-3. Compile the bootloader using the `bootloader_app.json` configuration you just editted:
+1. Compile the bootloader using the `bootloader_app.json` configuration you just edited:
+
    ```
    $ mbed compile -t <TOOLCHAIN> -m <TARGET> --profile=tiny.json --app-config=<path to pelion-enablement/bootloader/bootloader_app.json>
    ```
 
-Note the following:
- * `mbed-bootloader` is primarily optimized for `GCC_ARM` and therefore you might want to compile it with that toolchain.
- * Before jumping to the next step, you should compile and flash the bootloader, and then connect over the virtual comport to ensure that the bootloader is running correctly. You can ignore errors related to checksum verification or falure to jump to application - these are expected at this stage.
+<span class="notes">**Note:** `mbed-bootloader` is primarily optimized for `GCC_ARM`, so you may want to compile it with that toolchain.
+Before jumping to the next step, you should compile and flash the bootloader and then connect over the virtual comport to ensure the bootloader is running correctly. You can ignore errors related to checksum verification or falure to jump to application - these are expected at this stage.</span>
 
 ### 3. Add the bootloader to your application
 
 1. Copy the compiled bootloader from `mbed-bootloader-extended/BUILDS/<TARGET>/<TOOLCHAIN>-TINY/mbed-bootloader.bin` to `<your_application_name>/bootloader/mbed-bootloader-<TARGET>.bin`.
 
-2. Edit `<your_application_name>/mbed_app.json` and modify the target entry to include:
-```
+1. Edit `<your_application_name>/mbed_app.json`, and modify the target entry to include:
+
+   ```
             "target.features_add"              : ["BOOTLOADER"],
             "target.bootloader_img"            : "bootloader/mbed-bootloader-<TARGET>.bin",
             "target.app_offset"                : "0x10400",
             "target.header_offset"             : "0x10000",
             "update-client.application-details": "(MBED_CONF_APP_FLASH_START_ADDRESS + 64*1024)",
-```
+   ```
  
-   Note that:
-   * `update-client.application-details` should be identical in both `bootloader_app.json` and `mbed_app.json`
-   * `target.app_offset` is relative offset to `flash-start-address` you specified in the `mbed_app.json` and `bootloader_app.json`, and is the hex value of the offset specified by `application-start-address` in `bootloader_app.json`, e.g. `(MBED_CONF_APP_FLASH_START_ADDRESS+65*1024)` dec equals `0x10400` hex.
-   * `target.header_offset` is also relative offset to the `flash-start-address` you specified in the `bootloader_app.json`, and is the hex value of the offset specified by `update-client.application-details`, e.g. `(MBED_CONF_APP_FLASH_START_ADDRESS+64*1024)` dec equals `0x10000` hex.
+   <span class="notes">**Note:**    
+      - `update-client.application-details` should be identical in both `bootloader_app.json` and `mbed_app.json`.
+      - `target.app_offset` is relative offset to `flash-start-address` you specified in `mbed_app.json` and `bootloader_app.json`, and is the hex value of the offset specified by `application-start-address` in `bootloader_app.json`. For example,  `(MBED_CONF_APP_FLASH_START_ADDRESS+65*1024)` dec equals `0x10400` hex.
+      - `target.header_offset` is also relative offset to the `flash-start-address` you specified in the `bootloader_app.json`, and is the hex value of the offset specified by `update-client.application-details`. For example, `(MBED_CONF_APP_FLASH_START_ADDRESS+64*1024)` dec equals `0x10000` hex.</span>
 
-7. Finally, compile and re-run all tests, including the firmware update ones with:
-```
-$ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect -DMBED_TEST_MODE --compile
+1. Finally, compile and rerun all tests, including the firmware update ones with:
 
-$ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect --run -v
-```
+   ```
+   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect -DMBED_TEST_MODE --compile
+   
+   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect --run -v
+   ```
 
 Refer to the next section about what tests are being executed.
 
-## Validation and Testing
+## Validation and testing
 
-Mbed Device Management provides built-in tests to help you when define your device management configuration. Before running these tests, it's recommended that you refer to the [Testing Setup](#testing-setup) section below. 
+Mbed Device Management provides built-in tests to help you when define your device management configuration. Before running these tests, we recommend you refer to the [testing setup](#testing-setup) section below. 
 
-### Test suites - Basic
+### Test suites
 
 | **Test suite** | **Description** |
 | ------------- | ------------- |
-| `fs-single` | Filesystem single-threaded tests with write buffer sizes - 1 byte, 4b, 16b, 64b, 256b, 1kb, 4kb, 16kb, 64kb. |
-| `fs-multi` | Filesystem multi-threaded test with write buffer sizes - 1 byte, 4b, 16b, 64b, 256b, 1kb, 4kb, 16kb, 64kb. |
+| `fs-single` | File system single-threaded tests with write buffer sizes - 1 byte, 4b, 16b, 64b, 256b, 1kb, 4kb, 16kb, 64kb. |
+| `fs-multi` | File system multithreaded test with write buffer sizes - 1 byte, 4b, 16b, 64b, 256b, 1kb, 4kb, 16kb, 64kb. |
 | `net-single` | Network single-threaded test with receive buffer sizes - 128 bytes, 256b, 1kb, 2kb, 4kb. |
-| `net-multi` | Network multi-threaded test for 1, 2 and 3 download threads with 1kb receive buffer size. |
-| `stress-net-fs` | Network and Filesystem single and multi-threaded tests:<ul><li>1 thread (sequential) - 1 download (1kb buffer), 1 file thread (1kb buffer)</li><li>2 parallel threads - 1 download, 1 file thread (1kb buffer)</li><li>3 parallel threads - 1 download, 2 file (256 bytes, 1 kb buffer)</li><li>4 parallel threads - 1 download, 3 file (1 byte, 256 bytes, 1kb buffer)</li></ul> |
+| `net-multi` | Network multithreaded test for 1, 2 and 3 download threads with 1kb receive buffer size. |
+| `stress-net-fs` | Network and file system single and multithreaded tests:<ul><li>1 thread (sequential) - 1 download (1kb buffer), 1 file thread (1kb buffer)</li><li>2 parallel threads - 1 download, 1 file thread (1kb buffer)</li><li>3 parallel threads - 1 download, 2 file (256 bytes, 1 kb buffer)</li><li>4 parallel threads - 1 download, 3 file (1 byte, 256 bytes, 1kb buffer)</li></ul> |
 
-### Test cases - Connect
+### Test cases - connect
 
 | **Test case** | **Description** |
 | ------------- | ------------- |
-| `Connect to <Network type>` | Tests the connection to the network via network interface. |
-| `Initialize <Blockdevice>+<Filesystem>` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
-| `Format <Filesystem>` | Tests that the blockdevice can be successfully formatted for the filesystem type. |
-| `Initialize Simple PDMC ` | Verifies that Simple PDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP.
+| `Connect to <Network type>` | Tests the connection to the network through the network interface. |
+| `Initialize <Blockdevice>+<Filesystem>` | Initializes the block device driver and file system on top. Usually, the test will be stuck at this point if there's a problem with the storage device. |
+| `Format <Filesystem>` | Tests that you can successfully format the block device for the file system type. |
+| `Initialize Simple PDMC ` | Verifies you can initialize Pelion Device Management with the given network, storage and file system configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP.
 | `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |
 | `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
-| `Pelion DM Re-register` | Resets the device and re-registers with Pelion Device Management with previously bootstrapped credentials. |
+| `Pelion DM Re-register` | Resets the device and reregisters with Pelion Device Management with previously bootstrapped credentials. |
 | `Post-reset Identity` | Verifies that the device identity is preserved over device reset, confirming that Root of Trust is stored in SOTP correctly. |
 | `ResourceLwM2M GET` | Verifies that the device can perform a GET request on an LwM2M resource. |
-| `ResourceLwM2M SET Test` | Sets/changes value from the device and verifies that Pelion DM API client can observe the value changing. |
-| `ResourceLwM2M PUT Test` | Verifies that the device can perform a PUT request on an LwM2M resource by setting a new value. |
-| `Resource LwM2M POST Test` | Verifies that the device can execute a POST on an LwM2M resource and the callback function on the device is called. |
+| `ResourceLwM2M SET Test` | Sets or changes value from the device and verifies the Pelion Device Management API client can observe the value changing. |
+| `ResourceLwM2M PUT Test` | Verifies the device can perform a PUT request on an LwM2M resource by setting a new value. |
+| `Resource LwM2M POST Test` | Verifies the device can execute a POST on an LwM2M resource and the callback function on the device is called. |
 
-### Test cases - Update
+### Test cases - update
 
 | **Test case** | **Description** |
 | ------------- | ------------- |
-| `Connect to <Network type>` | Tests the connection to the network via network interface. |
-| `Initialize <Blockdevice>+<Filesystem>` | Initializes block device driver and filesystem on top. Usually the test will be stuck at this point if there's problem with the storage device. |
-| `Format <Filesystem>` | Tests that the blockdevice can be successfully formatted for the filesystem type. |
-| `Initialize Simple PDMC ` | Verifies that Simple PDMC can be initialized with the given network, storage, and filesystem configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP.
+| `Connect to <Network type>` | Tests the connection to the network using the network interface. |
+| `Initialize <Blockdevice>+<Filesystem>` | Initializes block device driver and file system on top. Usually the test will be stuck at this point if there's problem with the storage device. |
+| `Format <Filesystem>` | Tests that you can successfully format the block device for the file system type. |
+| `Initialize Simple PDMC ` | Verifies you can initialize Pelion Device Management with the given network, storage and file system configuration. This is where the FCU and KCM configuration is written to storage and the Root of Trust is written to SOTP.
 | `Pelion DM Bootstrap & Register` | Bootstraps the device and registers it for first time with Pelion Device Management. |
-| `Pelion DM Directory` | Verifies that a registered device appears in the Device Directory in Pelion Device Management. |
-| `Firmware Prepare` | Prepares the firmware on the host side and calls `mbed dm` to initiate Pelion Device Management update campaign. |
+| `Pelion DM Directory` | Verifies a registered device appears in the Device Directory in Pelion Device Management. |
+| `Firmware Prepare` | Prepares the firmware on the host side and calls `mbed dm` to initiate the Pelion Device Management update campaign. |
 | `Firmware Download` | Downloads the firmware onto the device. |
-| `Firmware Update` | Reset the device, verifies that the firmware has correct checksum, applies it and re-verifies the applied firmware checksum. |
-| `Pelion DM Re-register` | Re-registers the device with Pelion Device Management using the new firmware and previously bootstrapped credentials. |
+| `Firmware Update` | Resets the device, verifies that the firmware has correct checksum, applies it and reverifies the applied firmware checksum. |
+| `Pelion DM Re-register` | Reregisters the device with Pelion Device Management using the new firmware and previously bootstrapped credentials. |
 | `Post-update Identity` | Verifies that the device identity is preserved over firmware update and device reset, confirming that Root of Trust is stored in SOTP correctly. |
 
 ### Requirements
-Mbed Device Management tests rely on the Python SDK to test the end to end solution. To install the Python SDK:
+
+Mbed Device Management tests rely on the Python SDK to test the end-to-end solution. To install the Python SDK:
+
 ```
  $ pip install mbed-cloud-sdk
 ```
-**Note:** The Python SDK requires Python 2.7.10+ / Python 3.4.3+, built with SSL support.
 
-### Testing Setup
+<span class="notes">**Note:** The Python SDK requires Python 2.7.10+ or Python 3.4.3+, built with SSL support.</span>
+
+### Testing setup
 
 1. Import an example application for Pelion Device Management that contains the corresponding configuration for your target. 
 
-  Please refer to the following [generic application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
+   Please refer to the following [application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
 
-  Also, there are a number of board-specific applications that focus on providing more elaborate hardware features with Mbed OS and the Pelion IoT Platform. These are available in the Pelion [Quick-Start](https://cloud.mbed.com/quick-start).
+   Also, there are board-specific applications that focus on providing more elaborate hardware features with Mbed OS and the Pelion IoT Platform. These are available in the Pelion [quick start](https://cloud.mbed.com/quick-start).
 
-2. Set a global `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account that your device will connect to. For example:
+1. Set a global `mbed config` variable `CLOUD_SDK_API_KEY` on the host machine valid for the account your device will connect to. For example:
+
     ```
     $ mbed config -G CLOUD_SDK_API_KEY <API_KEY>
     ```
 
     For instructions on how to generate an API key, please [see the documentation](https://cloud.mbed.com/docs/current/integrate-web-app/api-keys.html#generating-an-api-key).
 
-3. Initialize your Pelion DM credentials (once per project):
+1. Initialize your Pelion DM credentials (once per project):
+
     ```
     $ mbed dm init -d "<your company name.com>" --model-name "<product model identifier>"
     ```
 
-    This will create your private/public key pair and also initialize various .c files with these credentials, so you can use Connect and (firmware) Update device management features.
+    This creates your private and public key pair and also initializes various `.c` files with these credentials, so you can use Connect and (firmware) Update device management features.
 
-4. Remove the `main.cpp` application from the project, or ensure the content of the file is wrapped with `#ifndef MBED_TEST_MODE`.
+1. Remove the `main.cpp` application from the project, or ensure the content of the file is wrapped with `#ifndef MBED_TEST_MODE`.
  
-5. Compile the tests with the `MBED_TEST_MODE` compilation flag.
+1. Compile the tests with the `MBED_TEST_MODE` compilation flag.
 
     ```
     $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
     ```
 
-5. Run the tests from the application directory:
+1. Run the tests from the application directory:
 
     ```
     $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v
     ```
 
 ### Troubleshooting
-Below are a list of common issues and fixes.
+
+Below are common issues and fixes.
 
 #### Autoformatting failed with error -5005
+
 This is due to an issue with the storage block device. If using an SD card, ensure that the SD card is seated properly.
 
 #### SYNC_FAILED during testing
-Occasionally, if the test failed during a previous attempt, the SMCC Greentea tests will fail to sync. If this is the case, please replug your device to the host PC. Additionally, you may need to update your DAPLink or ST-Link interface firmware.
+
+Occasionally, if the test failed during a previous attempt, the SMCC Greentea tests fail to sync. If this is the case, please replug your device to the host PC. Additionally, you may need to update your DAPLink or ST-Link interface firmware.
 
 #### Device identity is inconsistent
+
 If your device ID in Pelion Device Management is inconsistent over a device reset, it could be because it is failing to open the credentials on the storage held in the Enhanced Secure File System. Typically, this is because the device cannot access the Root of Trust stored in SOTP.
 
-One way to verify this is to see if the storage is reformatted after a device reset when `format-storage-layer-on-error` is set to `1` in `mbed_app.json`.  It would appear on the serial terminal output from the device as the following:
+One way to verify this is to see if the storage is reformatted after a device reset when `format-storage-layer-on-error` is set to `1` in `mbed_app.json`.  It would appear on the serial terminal output from the device as:
+
 ```
 [SMCC] Initializing storage.
 [SMCC] Autoformatting the storage.
@@ -398,24 +402,29 @@ One way to verify this is to see if the storage is reformatted after a device re
 [SMCC] Starting developer flow
 ```
 
-When this occurs, you should look at the SOTP sectors defined in `mbed_app.json`:
+When this occurs, look at the SOTP sectors defined in `mbed_app.json`:
+
 ```
 "sotp-section-1-address"           : "0xFE000",
 "sotp-section-1-size"              : "0x1000",
 "sotp-section-2-address"           : "0xFF000",
 "sotp-section-2-size"              : "0x1000",
 ```
-Ensure that the sectors are correct according to the flash layout of your device, and they are not being overwritten during the programming of the device. ST-Link devices will overwrite these sectors when using drag-and-drop of .bin files. Thus, moving the SOTP sectors to the end sectors of flash ensure that they will not be overwritten.
 
-#### Stack Overflow
-If you receive a stack overflow error, increase the Mbed OS main stack size to at least 6000. This can be done by modifying the following parameter in `mbed_app.json`:
+Ensure that the sectors are correct according to the flash layout of your device, and they are not being overwritten during the programming of the device. ST-Link devices overwrite these sectors when you use drag-and-drop of `.bin` files. Thus, moving the SOTP sectors to the end sectors of flash ensures they are not overwritten.
+
+#### Stack overflow
+
+If you receive a stack overflow error, increase the Mbed OS main stack size to at least 6000. You can do this by modifying the following parameter in `mbed_app.json`:
+
 ```
  "MBED_CONF_APP_MAIN_STACK_SIZE=6000",
 ```
 
 #### Device failed to register
-Check the device allocation on your Pelion account to see if you are allowed additional devices to connect. You can delete development devices, after being deleted they will not count towards your allocation.
 
+Check the device allocation on your Pelion account to see if you are allowed additional devices to connect. You can delete development devices. After being deleted, they will not count toward your allocation.
 
 ### Known issues
-Check open issues on [GitHub](https://github.com/ARMmbed/simple-mbed-cloud-client/issues)
+
+Check open issues on [GitHub](https://github.com/ARMmbed/simple-mbed-cloud-client/issues).
