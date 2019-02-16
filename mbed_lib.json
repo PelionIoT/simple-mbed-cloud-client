@@ -1,30 +1,19 @@
 {
-    "name": "client_app",
+    "name": "device-management",
+    "macros": [
+        "ARM_UC_USE_PAL_BLOCKDEVICE=1",
+        "MBED_CLOUD_CLIENT_UPDATE_STORAGE=ARM_UCP_FLASHIAP_BLOCKDEVICE"
+    ],
     "config": {
-        "partition_mode": {
-            "help": "Macro for single or dual partition mode. This is supposed to be used with storage storage for data e.g. SD card. This enabled by default.",
-            "macro_name": "MCC_PLATFORM_PARTITION_MODE"
+        "flash-start-address": {
+            "help": "Start address of internal flash. Only used in this config to help the definition of other macros.",
+            "macro_name": "MBED_CONF_APP_FLASH_START_ADDRESS",
+            "value": null
         },
-        "auto_partition": {
-            "help": "Optional macro automatic SD card partitioning if required. Partioning will be triggered only if initialization of available partitions fail. This requires partition_mode to be enabled.",
-            "macro_name": "MCC_PLATFORM_AUTO_PARTITION"
-        },
-        "pal_number_of_partition": {
-            "help": "Optional macro PAL_NUMBER_OF_PARTITIONS",
-            "macro_name": "PAL_NUMBER_OF_PARTITIONS"
-        },
-        "primary_partition_size": {
-            "help": "Optional macro PRIMARY_PARTITION_SIZE in bytes, default is 1GB. This requires auto_partition to be enabled.",
-            "macro_name": "PRIMARY_PARTITION_SIZE"
-        },
-        "secondary_partition_size": {
-            "help": "Optional macro SECONDARY_PARTITION_SIZE in bytes, deault is 1GB. This requires auto_partition to be enabled.",
-            "macro_name": "SECONDARY_PARTITION_SIZE"
-        },
-        "pal_dtls_peer_min_timeout": {
-            "help": "pal_dtls_peer_min_timeout",
-            "macro_name": "PAL_DTLS_PEER_MIN_TIMEOUT",
-            "value": 5000
+        "flash-size": {
+            "help": "Total size of internal flash. Only used in this config to help the definition of other macros.",
+            "macro_name": "MBED_CONF_APP_FLASH_SIZE",
+            "value": null
         },
         "sotp-section-1-address": {
             "help": "Flash sector address for SOTP sector 1",
@@ -46,6 +35,26 @@
             "macro_name": "PAL_INTERNAL_FLASH_SECTION_2_SIZE",
             "value": null
         },
+        "sotp-num-sections": {
+            "help": "Number of SOTP sections",
+            "macro_name": "PAL_INT_FLASH_NUM_SECTIONS",
+            "value": 2
+        },
+        "mcc_transport_mode": {
+            "help": "0 = TCP, 1 = TCP_QUEUE_MODE, 2 = UDP, 3 = UDP_QUEUE_MODE",
+            "macro_name": "MBED_CLOUD_CLIENT_TRANSPORT_MODE",
+            "value": null
+        },
+        "mcc_user_config_file": {
+            "help": "mcc_user_config_file",
+            "macro_name": "MBED_CLOUD_CLIENT_USER_CONFIG_FILE",
+            "value": "\"mbed_cloud_client_user_config.h\""
+        },
+        "mbed_client_user_config_file": {
+            "help": "mbed_client_user_config_file",
+            "macro_name": "MBED_CLIENT_USER_CONFIG_FILE",
+            "value": "MBED_CLOUD_CLIENT_USER_CONFIG_FILE"
+        },
         "mbedtls-user-config-file": {
             "help": "Defines which TLS configuration the board should use.",
             "macro_name": "MBEDTLS_USER_CONFIG_FILE",
@@ -55,6 +64,45 @@
             "help": "Defines which PAL configuration the board should use.",
             "macro_name": "PAL_USER_DEFINED_CONFIGURATION",
             "value": "\"sotp_fs_config_MbedOS.h\""
+        },
+        "pal_fs_mount_point_primary": {
+            "help": "pal_fs_mount_point_primary",
+            "macro_name": "PAL_FS_MOUNT_POINT_PRIMARY",
+            "value": "\"/fs\""
+        },
+        "pal_dtls_peer_min_timeout": {
+            "help": "pal_dtls_peer_min_timeout",
+            "macro_name": "PAL_DTLS_PEER_MIN_TIMEOUT",
+            "value": 5000
+        },
+        "pal-udp-mtu-size": {
+            "help": "Enforced usage of MTU limits",
+            "macro_name": "PAL_UDP_MTU_SIZE",
+            "value": null
+        },
+        "developer-mode": {
+            "help": "Enable Developer mode to skip Factory enrollment",
+            "value": 1
+        },
+        "partition_mode": {
+            "help": "Macro for single or dual partition mode. This is supposed to be used with storage storage for data e.g. SD card. This enabled by default.",
+            "macro_name": "MCC_PLATFORM_PARTITION_MODE"
+        },
+        "auto_partition": {
+            "help": "Optional macro automatic SD card partitioning if required. Partioning will be triggered only if initialization of available partitions fail. This requires partition_mode to be enabled.",
+            "macro_name": "MCC_PLATFORM_AUTO_PARTITION"
+        },
+        "pal_number_of_partition": {
+            "help": "Optional macro PAL_NUMBER_OF_PARTITIONS",
+            "macro_name": "PAL_NUMBER_OF_PARTITIONS"
+        },
+        "primary_partition_size": {
+            "help": "Optional macro PRIMARY_PARTITION_SIZE in bytes, default is 1GB. This requires auto_partition to be enabled.",
+            "macro_name": "PRIMARY_PARTITION_SIZE"
+        },
+        "secondary_partition_size": {
+            "help": "Optional macro SECONDARY_PARTITION_SIZE in bytes, deault is 1GB. This requires auto_partition to be enabled.",
+            "macro_name": "SECONDARY_PARTITION_SIZE"
         }
     }
 }

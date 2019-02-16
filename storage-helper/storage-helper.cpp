@@ -109,7 +109,7 @@ int StorageHelper::sotp_init(void)
 {
     int status = FCC_STATUS_SUCCESS;
 // Include this only for Developer mode and a device which doesn't have in-built TRNG support.
-#if MBED_CONF_APP_DEVELOPER_MODE == 1
+#if MBED_CONF_DEVICE_MANAGEMENT_DEVELOPER_MODE == 1
 #ifdef PAL_USER_DEFINED_CONFIGURATION
 #if !PAL_USE_HW_TRNG
     status = fcc_entropy_set(MBED_CLOUD_DEV_ENTROPY, FCC_ENTROPY_SIZE);
@@ -134,7 +134,7 @@ int StorageHelper::sotp_init(void)
         status = FCC_STATUS_SUCCESS;
     }
 #endif // PAL_USER_DEFINED_CONFIGURATION
-#endif // #if MBED_CONF_APP_DEVELOPER_MODE == 1
+#endif // #if MBED_CONF_DEVICE_MANAGEMENT_DEVELOPER_MODE == 1
     return status;
 }
 

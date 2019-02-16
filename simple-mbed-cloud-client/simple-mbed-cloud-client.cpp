@@ -433,7 +433,7 @@ int SimpleMbedCloudClient::reset_storage() {
 int SimpleMbedCloudClient::verify_cloud_configuration(bool format) {
     int status;
 
-#if MBED_CONF_APP_DEVELOPER_MODE == 1
+#if MBED_CONF_DEVICE_MANAGEMENT_DEVELOPER_MODE == 1
     tr_debug("Starting developer flow");
     if( format ) {
         status = reset_storage();
