@@ -117,8 +117,10 @@ Specification specification(greentea_setup, cases);
 
 int main() {
     //Create a thread to blink an LED and signal that the device is alive
+#if defined(MBED_CONF_APP_NO_LED) && (MBED_CONF_APP_NO_LED == 1)
     Ticker t;
     t.attach(led_thread, 0.5);
+#endif
 
     return !Harness::run(specification);
 }
