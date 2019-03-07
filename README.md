@@ -368,13 +368,13 @@ Mbed Device Management tests rely on the Python SDK to test the end-to-end solut
 1. Compile the tests with the `MBED_TEST_MODE` compilation flag.
 
     ```
-    $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
+    $ mbed test -t <toolchain> -m <platform> -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
     ```
 
 1. Run the tests from the application directory:
 
     ```
-    $ mbed test -t <toolchain> -m <platform> --app-config mbed_app.json -n simple-mbed-cloud-client-tests-* --run -v
+    $ mbed test -t <toolchain> -m <platform> -n simple-mbed-cloud-client-tests-* --run -v
     ```
 
 ### Troubleshooting
