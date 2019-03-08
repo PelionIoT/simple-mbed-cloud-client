@@ -170,7 +170,7 @@ Edit the `mbed_app.json` file, and create a new entry under `target_overrides` w
             "sd.SPI_CS"                        : "PE_4",
    ```
    
-    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring spif-driver.SPI_FREQ. If it is not configured, 40Mhz will be applied by default.
+    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring `spif-driver.SPI_FREQ`. If it is not configured, 40Mhz will be applied by default.
    
 - **Flash** - Define the basics for the microcontroller flash. For example:
    
@@ -246,7 +246,7 @@ After you've successfully passed the "Connect" tests as described above, you can
             "sd.SPI_CS"                        : "PE_4"
     ```
     
-    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring spif-driver.SPI_FREQ. If it is not configured, 40Mhz will be applied by default.
+    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring `spif-driver.SPI_FREQ`. If it is not configured, 40Mhz will be applied by default.
     
 1. Compile the bootloader using the `bootloader_app.json` configuration you just edited:
 
@@ -279,9 +279,9 @@ Before jumping to the next step, you should compile and flash the bootloader and
 1. Finally, compile and rerun all tests, including the firmware update ones with:
 
    ```
-   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect -DMBED_TEST_MODE --compile
+   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
    
-   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect --run -v
+   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests-* --run -v
    ```
 
 Refer to the next section about what tests are being executed.
@@ -441,7 +441,7 @@ Suggestions:
   1. Connect the modem to an serial interface which supports hardware flow control, and define MDMRTS and MDMCTS correspondingly.
   2. Use the highest possible baud-rate of your modem, e.g. 115200bps
   3. For the UART connected to your host PC, choose one which supports hardware flow control
-  4. Set the STDIO UART baud-rate to 230400bps by configuring "platform.stdio-baud-rate".
+  4. Set the STDIO UART baud-rate to 230400bps by configuring `platform.stdio-baud-rate`.
 
 #### Notification channel failures during LwM2M Resource test cases
 This could be observed if a previously registered long-poll or webhook notification channel with the same API key existed.
