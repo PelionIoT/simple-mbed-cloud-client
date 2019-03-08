@@ -170,21 +170,23 @@ Edit the `mbed_app.json` file, and create a new entry under `target_overrides` w
             "sd.SPI_CS"                        : "PE_4",
    ```
    
+    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring spif-driver.SPI_FREQ. If it is not configured, 40Mhz will be applied by default.
+   
 - **Flash** - Define the basics for the microcontroller flash. For example:
    
    ```
-            "device_management.flash-start-address"              : "0x08000000",
-            "device_management.flash-size"                       : "(2048*1024)",
+            "device-management.flash-start-address"              : "0x08000000",
+            "device-management.flash-size"                       : "(2048*1024)",
    ```
    
 - **SOTP** - Define two SOTP or NVStore regions that Mbed OS Device Management will use to store its special keys, which encrypt the data stored. Use the last two Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. For example:
 
    ```
-            "device_management.sotp-section-1-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 2*(128*1024))",
-            "device_management.sotp-section-1-size"               : "(128*1024)",
-            "device_management.sotp-section-2-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 1*(128*1024))",
-            "device_management.sotp-section-2-size"               : "(128*1024)",
-            "device_management.sotp-num-sections" : 2
+            "device-management.sotp-section-1-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 2*(128*1024))",
+            "device-management.sotp-section-1-size"               : "(128*1024)",
+            "device-management.sotp-section-2-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 1*(128*1024))",
+            "device-management.sotp-section-2-size"               : "(128*1024)",
+            "device-management.sotp-num-sections" : 2
    ```
 
 `*-address` defines the start of the Flash sector, and `*-size` defines the actual sector size. `sotp-num-sections` should always be set to `2`.
@@ -243,7 +245,9 @@ After you've successfully passed the "Connect" tests as described above, you can
             "sd.SPI_CLK"                       : "PE_2",
             "sd.SPI_CS"                        : "PE_4"
     ```
-
+    
+    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring spif-driver.SPI_FREQ. If it is not configured, 40Mhz will be applied by default.
+    
 1. Compile the bootloader using the `bootloader_app.json` configuration you just edited:
 
    ```
@@ -389,6 +393,8 @@ This is due to an issue with the storage block device. If using an SD card, ensu
 
 Occasionally, if the test failed during a previous attempt, the SMCC Greentea tests fail to sync. If this is the case, please replug your device to the host PC. Additionally, you may need to update your DAPLink or ST-Link interface firmware.
 
+If the test fails with SYNC_FAILED all the time, please check if the UART flow control pins (UART_CTS, UART_RTS) are properly defined. If your device supports flow control over UART, fill them with the corresponding pins; if not, please specify NC.
+
 #### Device identity is inconsistent
 
 If your device ID in Pelion Device Management is inconsistent over a device reset, it could be because it is failing to open the credentials on the storage held in the Enhanced Secure File System. Typically, this is because the device cannot access the Root of Trust stored in SOTP.
@@ -424,6 +430,14 @@ If you receive a stack overflow error, increase the Mbed OS main stack size to a
 #### Device failed to register
 
 Check the device allocation on your Pelion account to see if you are allowed additional devices to connect. You can delete development devices. After being deleted, they will not count toward your allocation.
+
+#### In network test cases, tests over larger buffers passed, but tests over small buffers keeps failing
+This could be observed with cellular modems driven by AT commands. 
+Suggestions: 
+  1. Connect the modem to an serial interface which supports hardware flow control, and define MDMRTS and MDMCTS correspondingly.
+  2. Use the highest possible baud-rate of your modem, e.g. 115200bps
+  3. For the UART connected to your host PC, choose one which supports hardware flow control
+  4. Set the STDIO UART baud-rate to 230400bps by configuring "platform.stdio-baud-rate".
 
 ### Known issues
 
