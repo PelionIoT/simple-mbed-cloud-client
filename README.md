@@ -443,9 +443,16 @@ Suggestions:
   3. For the UART connected to your host PC, choose one which supports hardware flow control
   4. Set the STDIO UART baud-rate to 230400bps by configuring `platform.stdio-baud-rate`.
 
+#### With SPI/QSPI Flash, LittleFS got corrupted after firmware update test
+Please set partition mode to 0:
+```
+"device-management.partition_mode"         : 0
+```
+
 #### Notification channel failures during LwM2M Resource test cases
 This could be observed if a previously registered long-poll or webhook notification channel with the same API key existed.
 You may either use another API key, or delete the notification channel with curl command:
+
 to delete Long Poll:
 ```
 curl -H "Authorization: Bearer ${API_KEY}" -X DELETE ${API_URL}/v2/notification/pull
