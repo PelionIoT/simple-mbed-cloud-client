@@ -389,6 +389,10 @@ Below are common issues and fixes.
 
 This is due to an issue with the storage block device. If using an SD card, ensure that the SD card is seated properly.
 
+#### Storage initialization failed with error -4002
+
+This is observed when the device is using legacy serial flash which does not support SFDP, or the SPI frequency is not configured properly.
+
 #### SYNC_FAILED during testing
 
 Occasionally, if the test failed during a previous attempt, the SMCC Greentea tests fail to sync. If this is the case, please replug your device to the host PC. Additionally, you may need to update your DAPLink or ST-Link interface firmware.
@@ -439,6 +443,26 @@ Suggestions:
   3. For the UART connected to your host PC, choose one which supports hardware flow control
   4. Set the STDIO UART baud-rate to 230400bps by configuring "platform.stdio-baud-rate".
 
+#### Notification channel failures during LwM2M Resource test cases
+This could be observed if a previously registered long-poll or webhook notification channel with the same API key existed.
+You may either use another API key, or delete the notification channel with curl command:
+to delete Long Poll:
+```
+curl -H "Authorization: Bearer ${API_KEY}" -X DELETE ${API_URL}/v2/notification/pull
+```
+to delete WebHook:
+```
+curl -H "Authorization: Bearer ${API_KEY}" -X DELETE ${API_URL}/v2/notification/callback
+```
+Please note that long-polling is now deprecated and will be likely be replace in the future. Use callback notification channel (WebHook) instead.
+
+#### I had built the test suites but somehow I got my Python environment messed up; can I run the test binaries without GreenTea?
+  The test binaries are built under <repo folder>/BUILD/tests/<Target Name>/<Toolchain>/simple-mbed-cloud-client/TESTS/<Test Suites>/<test case>/<test case name>.hex. 
+  You may copy the binary you want to manually test and flash it to the device, then when the device boots, paste the following line to the serial console to trigger the test:
+```
+ {{__sync;1}}
+```   
+   
 ### Known issues
 
 Check open issues on [GitHub](https://github.com/ARMmbed/simple-mbed-cloud-client/issues).
