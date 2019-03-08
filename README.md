@@ -444,7 +444,7 @@ Suggestions:
   4. Set the STDIO UART baud-rate to 230400bps by configuring `platform.stdio-baud-rate`.
 
 #### With SPI/QSPI Flash, LittleFS got corrupted after firmware update test
-If you have configured `"device-management.partition_mode"` to 1, please make sure you have both `"client_app.primary_partition_size"` and the `macro MBED_CONF_APP_BASICS_TEST_FS_SIZE` configured with the same value.
+If you have configured `"device-management.partition_mode"` to 1, please make sure you have both `"device-management.primary_partition_size"` and the `macro MBED_CONF_APP_BASICS_TEST_FS_SIZE` configured with the same value.
 Or, you may try to configure `"device-management.partition_mode": 0`
 
 #### Notification channel failures during LwM2M Resource test cases
