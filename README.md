@@ -457,7 +457,10 @@ curl -H "Authorization: Bearer ${API_KEY}" -X DELETE ${API_URL}/v2/notification/
 Please note that long-polling is now deprecated and will be likely be replace in the future. Use callback notification channel (WebHook) instead.
 
 #### I had built the test suites but somehow I got my Python environment messed up; can I run the test binaries without GreenTea?
-  The test binaries are built under <repo folder>/BUILD/tests/<Target Name>/<Toolchain>/simple-mbed-cloud-client/TESTS/<Test Suites>/<test case>/<test case name>.hex. 
+  The test binaries are built under:
+```
+  <repo folder>/BUILD/tests/<Target Name>/<Toolchain>/simple-mbed-cloud-client/TESTS/<Test Suites>/<test case>/<test case name>.hex. 
+```
   You may copy the binary you want to manually test and flash it to the device, then when the device boots, paste the following line to the serial console to trigger the test:
 ```
  {{__sync;1}}
