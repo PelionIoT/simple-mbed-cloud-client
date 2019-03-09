@@ -448,7 +448,6 @@ If you observe logs such as `mbed assertation failed: block < lfs->cfg->block_co
 ```
 "device-management.partition_mode"         : 0
 ```
-Also, please make sure the value of macro `MBED_CONF_APP_BASICS_TEST_FS_SIZE` does not exceed the range of `"update-client.storage-address"`.
 
 #### Notification channel failures during LwM2M Resource test cases
 This could be observed if a previously registered long-poll or webhook notification channel with the same API key existed.
