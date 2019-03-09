@@ -444,7 +444,11 @@ Suggestions:
   4. Set the STDIO UART baud-rate to 230400bps by configuring `platform.stdio-baud-rate`.
 
 #### With SPI/QSPI Flash, LittleFS got corrupted after firmware update test
-If you observe logs such as `mbed assertation failed: block < lfs->cfg->block_count` or `invalid superblock`, etc., please try to configure `"device-management.partition_mode"` to 0.
+If you observe logs such as `mbed assertation failed: block < lfs->cfg->block_count` or `invalid superblock`, etc., please check if partition mode is set to 0:
+```
+"device-management.partition_mode"         : 0
+```
+Also, please make sure the value of macro `MBED_CONF_APP_BASICS_TEST_FS_SIZE` does not exceed the range of `"update-client.storage-address"`.
 
 #### Notification channel failures during LwM2M Resource test cases
 This could be observed if a previously registered long-poll or webhook notification channel with the same API key existed.
