@@ -30,12 +30,14 @@
 
 uint32_t test_timeout = 30*60;
 
+#if !defined(MBED_CONF_APP_NO_LED)
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 void led_thread() {
     led1 = !led1;
     led2 = !led1;
 }
+#endif
 RawSerial pc(USBTX, USBRX);
 
 void wait_nb(uint16_t ms) {
@@ -387,7 +389,7 @@ void spdmc_testsuite_update(void) {
 
 int main(void) {
     //Create a thread to blink an LED and signal that the device is alive
-#ifdef MBED_CONF_APP_NO_LED
+#if !defined(MBED_CONF_APP_NO_LED)
     Ticker t;
     t.attach(led_thread, 0.5);
 #endif
