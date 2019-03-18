@@ -103,6 +103,11 @@
         "secondary_partition_size": {
             "help": "Optional macro SECONDARY_PARTITION_SIZE in bytes, deault is 1GB. This requires auto_partition to be enabled.",
             "macro_name": "SECONDARY_PARTITION_SIZE"
+        },
+        "use-stl": {
+            "help": "Whether to use the C++ STL functions. If you're resource constrained and are not using STL string / vector in your application, disable it.",
+            "macro_name": "MBED_CLOUD_CLIENT_STL_API",
+            "value": 0
         }
     }
 }
