@@ -38,11 +38,11 @@ Useful references:
 ### Adding a device management feature to your application
 
 1. Add this library to your Mbed OS project:
-   
+
    ```
    $ mbed add https://github.com/ARMmbed/simple-mbed-cloud-client
    ```
-   
+
    If you do not have an Mbed OS project to add, you can create one with `mbed new <your_application_name>` and then the `mbed add` step above.
 
 1. Reference the library from the `main.cpp` file, and add network and storage drivers. Finally, initialize the SimpleMbedCloudClient library. This is the architecture of a device management application with Mbed OS:
@@ -144,13 +144,13 @@ To hasten this process, you can copy the configuration from the [application exa
 Edit the `mbed_app.json` file, and create a new entry under `target_overrides` with the target name for your device:
 
 - **Connectivity** - Specify the default connectivity type for your target. It's essential with targets that lack default connectivity set in `targets.json` or for targets that support multiple connectivity options. For example:
-   
+
    ```
             "target.network-default-interface-type" : "ETHERNET",
    ```
-      
+
    The possible options are `ETHERNET`, `WIFI` and `CELLULAR`.
-   
+
    Depending on connectivity type, you might have to specify more config options. For an example, please see the defined `CELLULAR` targets in `mbed_app.json`.
 
 - **Storage** - Specify the storage block device type, which dynamically adds the block device driver you specified at compile time. For example:
@@ -162,23 +162,23 @@ Edit the `mbed_app.json` file, and create a new entry under `target_overrides` w
    Valid options are `SD`, `SPIF`, `QSPIF` and `FLASHIAP` (not recommended). For more available options, please see the [block device components](https://github.com/ARMmbed/mbed-os/tree/master/components/storage/blockdevice).
 
    You also have to specify block device pin configuration, which may vary from one block device type to another. Here's an example for `SD`:
-      
+
    ```
             "sd.SPI_MOSI"                      : "PE_6",
             "sd.SPI_MISO"                      : "PE_5",
             "sd.SPI_CLK"                       : "PE_2",
             "sd.SPI_CS"                        : "PE_4",
    ```
-   
+
     If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring `spif-driver.SPI_FREQ`. If it is not configured, 40Mhz will be applied by default.
-   
+
 - **Flash** - Define the basics for the microcontroller flash. For example:
-   
+
    ```
             "device-management.flash-start-address"              : "0x08000000",
             "device-management.flash-size"                       : "(2048*1024)",
    ```
-   
+
 - **SOTP** - Define two SOTP or NVStore regions that Mbed OS Device Management will use to store its special keys, which encrypt the data stored. Use the last two Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. For example:
 
    ```
@@ -214,14 +214,14 @@ After you've successfully passed the "Connect" tests as described above, you can
 1. Inside the imported bootloader application, and edit the application configuration, for example `mbed-bootloader-extended/mbed_app.json`. Add a new target entry similar to the step above, and specify:
 
    - **Flash** - Define the basics for the microcontroller flash (the same as in `mbed_app.json`). For example:
-   
+
       ```
             "flash-start-address"              : "0x08000000",
             "flash-size"                       : "(2048*1024)",
       ```
 
    - **SOTP** - Similar to the **SOTP** step above, specify the location of the SOTP key storage. In the bootloader, the variables are named differently. Try to use the last two Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. For example:
-   
+
     ```
             "nvstore.area_1_address"           : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 2*(128*1024))",
             "nvstore.area_1_size"              : "(128*1024)",
@@ -229,15 +229,15 @@ After you've successfully passed the "Connect" tests as described above, you can
     ```
 
     - **Application offset** - Specify start address for the application, and also the update-client meta information. As these are automatically calculated, you can copy the ones below:
-    
+
     ```
             "update-client.application-details": "(MBED_CONF_APP_FLASH_START_ADDRESS + 64*1024)",
             "application-start-address"        : "(MBED_CONF_APP_FLASH_START_ADDRESS + 65*1024)",
             "max-application-size"             : "DEFAULT_MAX_APPLICATION_SIZE",
     ```
-    
+
     - **Storage** - Specify the block device pin configuration, exactly as you defined it in the `mbed_app.json` file. For example:
-    
+
     ```
             "target.components_add"            : ["SD"],
             "sd.SPI_MOSI"                      : "PE_6",
@@ -245,9 +245,9 @@ After you've successfully passed the "Connect" tests as described above, you can
             "sd.SPI_CLK"                       : "PE_2",
             "sd.SPI_CS"                        : "PE_4"
     ```
-    
+
     If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring `spif-driver.SPI_FREQ`. If it is not configured, 40Mhz will be applied by default.
-    
+
 1. Compile the bootloader using the `bootloader_app.json` configuration you just edited:
 
    ```
@@ -270,8 +270,8 @@ Before jumping to the next step, you should compile and flash the bootloader and
             "target.header_offset"             : "0x10000",
             "update-client.application-details": "(MBED_CONF_APP_FLASH_START_ADDRESS + 64*1024)",
    ```
- 
-   <span class="notes">**Note:**    
+
+   <span class="notes">**Note:**
       - `update-client.application-details` should be identical in both `bootloader_app.json` and `mbed_app.json`.
       - `target.app_offset` is relative offset to `flash-start-address` you specified in `mbed_app.json` and `bootloader_app.json`, and is the hex value of the offset specified by `application-start-address` in `bootloader_app.json`. For example,  `(MBED_CONF_APP_FLASH_START_ADDRESS+65*1024)` dec equals `0x10400` hex.
       - `target.header_offset` is also relative offset to the `flash-start-address` you specified in the `bootloader_app.json`, and is the hex value of the offset specified by `update-client.application-details`. For example, `(MBED_CONF_APP_FLASH_START_ADDRESS+64*1024)` dec equals `0x10000` hex.</span>
@@ -280,7 +280,7 @@ Before jumping to the next step, you should compile and flash the bootloader and
 
    ```
    $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
-   
+
    $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests-* --run -v
    ```
 
@@ -288,7 +288,7 @@ Refer to the next section about what tests are being executed.
 
 ## Validation and testing
 
-Mbed Device Management provides built-in tests to help you when define your device management configuration. Before running these tests, we recommend you refer to the [testing setup](#testing-setup) section below. 
+Mbed Device Management provides built-in tests to help you when define your device management configuration. Before running these tests, we recommend you refer to the [testing setup](#testing-setup) section below.
 
 ### Test suites
 
@@ -345,7 +345,7 @@ Mbed Device Management tests rely on the Python SDK to test the end-to-end solut
 
 ### Testing setup
 
-1. Import an example application for Pelion Device Management that contains the corresponding configuration for your target. 
+1. Import an example application for Pelion Device Management that contains the corresponding configuration for your target.
 
    Please refer to the following [application example](https://github.com/ARMmbed/pelion-ready-example). It demonstrates how to connect to the Pelion IoT Platform service, register resources and get ready to receive a firmware update.
 
@@ -368,7 +368,7 @@ Mbed Device Management tests rely on the Python SDK to test the end-to-end solut
     This creates your private and public key pair and also initializes various `.c` files with these credentials, so you can use Connect and (firmware) Update device management features.
 
 1. Remove the `main.cpp` application from the project, or ensure the content of the file is wrapped with `#ifndef MBED_TEST_MODE`.
- 
+
 1. Compile the tests with the `MBED_TEST_MODE` compilation flag.
 
     ```
@@ -436,8 +436,8 @@ If you receive a stack overflow error, increase the Mbed OS main stack size to a
 Check the device allocation on your Pelion account to see if you are allowed additional devices to connect. You can delete development devices. After being deleted, they will not count toward your allocation.
 
 #### In network test cases, tests over larger buffers passed, but tests over small buffers keeps failing
-This could be observed with cellular modems driven by AT commands. 
-Suggestions: 
+This could be observed with cellular modems driven by AT commands.
+Suggestions:
   1. Connect the modem to an serial interface which supports hardware flow control, and define MDMRTS and MDMCTS correspondingly.
   2. Use the highest possible baud-rate of your modem, e.g. 115200bps
   3. For the UART connected to your host PC, choose one which supports hardware flow control
@@ -466,13 +466,34 @@ Please note that long-polling is now deprecated and will be likely be replace in
 #### I had built the test suites but somehow I got my Python environment messed up; can I run the test binaries without GreenTea?
   The test binaries are built under:
 ```
-  <repo folder>/BUILD/tests/<Target Name>/<Toolchain>/simple-mbed-cloud-client/TESTS/<Test Suites>/<test case>/<test case name>.hex. 
+  <repo folder>/BUILD/tests/<Target Name>/<Toolchain>/simple-mbed-cloud-client/TESTS/<Test Suites>/<test case>/<test case name>.hex.
 ```
   You may copy the binary you want to manually test and flash it to the device, then when the device boots, paste the following line to the serial console to trigger the test:
 ```
  {{__sync;1}}
-```   
-   
+```
+
 ### Known issues
 
 Check open issues on [GitHub](https://github.com/ARMmbed/simple-mbed-cloud-client/issues).
+
+## Single-thread mode
+
+You can reduce the RAM requirements for device management by ~9K when running this library in single-thread mode. This means the library will not spin up a thread to process device management events, but that you'll process events manually.
+
+To enable single-thread mode, add the following entry under `target_overrides` in your `mbed_app.json`:
+
+```json
+"nanostack-hal.event-loop-dispatch-from-application": true
+```
+
+This will make the `process_events` function available to your application. Call this function regularly. For example, in [pelion-ready-example](https://github.com/ARMmbed/pelion-ready-example) add the following lines to your `main` function:
+
+```cpp
+#if MBED_CONF_NANOSTACK_HAL_EVENT_LOOP_DISPATCH_FROM_APPLICATION == 1 // if running device management in single-thread mode
+    // Run the scheduler on the main event queue
+    eventQueue.call_every(1, callback(&client, &SimpleMbedCloudClient::process_events));
+#endif
+```
+
+Since the events are now processed on your main thread, you might need to increase the main thread stack size.

@@ -450,3 +450,9 @@ int SimpleMbedCloudClient::verify_cloud_configuration(bool format) {
     status = fcc_verify_device_configured_4mbed_cloud();
     return status;
 }
+
+#if MBED_CONF_NANOSTACK_HAL_EVENT_LOOP_DISPATCH_FROM_APPLICATION == 1
+void SimpleMbedCloudClient::process_events(void) {
+    eventOS_scheduler_run_until_idle();
+}
+#endif

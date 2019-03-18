@@ -28,6 +28,7 @@
 #include "storage-helper/storage-helper.h"
 #include "mbed.h"
 #include "NetworkInterface.h"
+#include "eventOS_scheduler.h"
 
 class MbedCloudClientResource;
 
@@ -185,6 +186,17 @@ public:
      * returns 0 if successful, non-0 if failed
      */
     int reformat_storage();
+
+#if MBED_CONF_NANOSTACK_HAL_EVENT_LOOP_DISPATCH_FROM_APPLICATION == 1
+    /**
+     * Process library events in the queue
+     *
+     * This function needs to be called regularly when in single thread mode,
+     * to ensure correct functionality of the internal state machine.
+     * If not running in single thread mode this function is called automatically.
+     */
+    void process_events();
+#endif // MBED_CONF_NANOSTACK_HAL_EVENT_LOOP_DISPATCH_FROM_APPLICATION
 
 private:
 
