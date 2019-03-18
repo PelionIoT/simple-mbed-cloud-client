@@ -479,7 +479,7 @@ Check open issues on [GitHub](https://github.com/ARMmbed/simple-mbed-cloud-clien
 
 ## Single-thread mode
 
-You can reduce the RAM requirements for device management by ~9K when running this library in single-thread mode. This means the library will not spin up a thread to process device management events, but that you'll process events manually.
+You can reduce the RAM requirements for device management by ~7K when running this library in single-thread mode. This means the library will not spin up a thread to process device management events, but that you'll process events manually.
 
 To enable single-thread mode, add the following entry under `target_overrides` in your `mbed_app.json`:
 
