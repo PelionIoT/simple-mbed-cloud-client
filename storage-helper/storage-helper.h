@@ -98,7 +98,7 @@ public:
      * StorageHelper manages storage across multiple partitions,
      * initializes SOTP, and can format the storage.
      *
-     * @param bd An un-initialized block device
+     * @param bd An un-initialized block device to back the file system
      * @param fs An un-mounted file system
      */
     StorageHelper(BlockDevice *bd, FileSystem *fs);

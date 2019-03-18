@@ -43,8 +43,6 @@
 #define DEFAULT_FIRMWARE_PATH       "/fs/firmware"
 #endif
 
-BlockDevice *arm_uc_blockdevice;
-
 SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs) :
     _registered(false),
     _register_called(false),
@@ -57,7 +55,6 @@ SimpleMbedCloudClient::SimpleMbedCloudClient(NetworkInterface *net, BlockDevice 
     _fs(fs),
     _storage(bd, fs)
 {
-    arm_uc_blockdevice = bd;
 }
 
 SimpleMbedCloudClient::~SimpleMbedCloudClient() {

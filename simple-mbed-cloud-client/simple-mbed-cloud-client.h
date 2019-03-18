@@ -39,7 +39,7 @@ public:
      * Initialize SimpleMbedCloudClient
      *
      * @param net A connected network interface
-     * @param bd An uninitialized block device
+     * @param bd An uninitialized block device to back the file system
      * @param fs An uninitialized file system
      */
     SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs);

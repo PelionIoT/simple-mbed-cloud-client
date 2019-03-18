@@ -181,7 +181,7 @@ void spdmc_testsuite_connect(void) {
     // SimpleMbedCloudClient initialization must be successful.
     test_case_start("Initialize Simple PDMC", 4);
 
-    SimpleMbedCloudClient client(net, bd, &fs);
+    SimpleMbedCloudClient client(net, &sd, &fs);
     int client_status = client.init();
 
     // Report status to console.
