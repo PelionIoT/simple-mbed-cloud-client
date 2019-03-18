@@ -170,21 +170,23 @@ Edit the `mbed_app.json` file, and create a new entry under `target_overrides` w
             "sd.SPI_CS"                        : "PE_4",
    ```
    
+    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring `spif-driver.SPI_FREQ`. If it is not configured, 40Mhz will be applied by default.
+   
 - **Flash** - Define the basics for the microcontroller flash. For example:
    
    ```
-            "device_management.flash-start-address"              : "0x08000000",
-            "device_management.flash-size"                       : "(2048*1024)",
+            "device-management.flash-start-address"              : "0x08000000",
+            "device-management.flash-size"                       : "(2048*1024)",
    ```
    
 - **SOTP** - Define two SOTP or NVStore regions that Mbed OS Device Management will use to store its special keys, which encrypt the data stored. Use the last two Flash sectors (if possible) to ensure that they don't get overwritten when new firmware is applied. For example:
 
    ```
-            "device_management.sotp-section-1-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 2*(128*1024))",
-            "device_management.sotp-section-1-size"               : "(128*1024)",
-            "device_management.sotp-section-2-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 1*(128*1024))",
-            "device_management.sotp-section-2-size"               : "(128*1024)",
-            "device_management.sotp-num-sections" : 2
+            "device-management.sotp-section-1-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 2*(128*1024))",
+            "device-management.sotp-section-1-size"               : "(128*1024)",
+            "device-management.sotp-section-2-address"            : "(MBED_CONF_APP_FLASH_START_ADDRESS + MBED_CONF_APP_FLASH_SIZE - 1*(128*1024))",
+            "device-management.sotp-section-2-size"               : "(128*1024)",
+            "device-management.sotp-num-sections" : 2
    ```
 
 `*-address` defines the start of the Flash sector, and `*-size` defines the actual sector size. `sotp-num-sections` should always be set to `2`.
@@ -243,7 +245,9 @@ After you've successfully passed the "Connect" tests as described above, you can
             "sd.SPI_CLK"                       : "PE_2",
             "sd.SPI_CS"                        : "PE_4"
     ```
-
+    
+    If you are using SPI/QSPI flash, please make sure you have specified the correct SPI frequency by configuring `spif-driver.SPI_FREQ`. If it is not configured, 40Mhz will be applied by default.
+    
 1. Compile the bootloader using the `bootloader_app.json` configuration you just edited:
 
    ```
@@ -275,9 +279,9 @@ Before jumping to the next step, you should compile and flash the bootloader and
 1. Finally, compile and rerun all tests, including the firmware update ones with:
 
    ```
-   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect -DMBED_TEST_MODE --compile
+   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests-* -DMBED_TEST_MODE --compile
    
-   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect --run -v
+   $ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests-* --run -v
    ```
 
 Refer to the next section about what tests are being executed.
@@ -385,9 +389,15 @@ Below are common issues and fixes.
 
 This is due to an issue with the storage block device. If using an SD card, ensure that the SD card is seated properly.
 
+#### Storage initialization failed with error -4002
+
+This is observed when the device is using legacy serial flash which does not support SFDP, or the SPI frequency is not configured properly.
+
 #### SYNC_FAILED during testing
 
 Occasionally, if the test failed during a previous attempt, the SMCC Greentea tests fail to sync. If this is the case, please replug your device to the host PC. Additionally, you may need to update your DAPLink or ST-Link interface firmware.
+
+If the test fails with SYNC_FAILED all the time, please check if the UART flow control pins (UART_CTS, UART_RTS) are properly defined. If your device supports flow control over UART, fill them with the corresponding pins; if not, please specify NC.
 
 #### Device identity is inconsistent
 
@@ -425,6 +435,44 @@ If you receive a stack overflow error, increase the Mbed OS main stack size to a
 
 Check the device allocation on your Pelion account to see if you are allowed additional devices to connect. You can delete development devices. After being deleted, they will not count toward your allocation.
 
+#### In network test cases, tests over larger buffers passed, but tests over small buffers keeps failing
+This could be observed with cellular modems driven by AT commands. 
+Suggestions: 
+  1. Connect the modem to an serial interface which supports hardware flow control, and define MDMRTS and MDMCTS correspondingly.
+  2. Use the highest possible baud-rate of your modem, e.g. 115200bps
+  3. For the UART connected to your host PC, choose one which supports hardware flow control
+  4. Set the STDIO UART baud-rate to 230400bps by configuring `platform.stdio-baud-rate`.
+
+#### With SPI/QSPI Flash, LittleFS got corrupted after firmware update test
+If you observe logs such as `mbed assertation failed: block < lfs->cfg->block_count` or `invalid superblock`, etc., please check if partition mode is set to 0:
+```
+"device-management.partition_mode"         : 0
+```
+
+#### Notification channel failures during LwM2M Resource test cases
+This could be observed if a previously registered long-poll or webhook notification channel with the same API key existed.
+You may either use another API key, or delete the notification channel with curl command:
+
+to delete Long Poll:
+```
+curl -H "Authorization: Bearer ${API_KEY}" -X DELETE ${API_URL}/v2/notification/pull
+```
+to delete WebHook:
+```
+curl -H "Authorization: Bearer ${API_KEY}" -X DELETE ${API_URL}/v2/notification/callback
+```
+Please note that long-polling is now deprecated and will be likely be replace in the future. Use callback notification channel (WebHook) instead.
+
+#### I had built the test suites but somehow I got my Python environment messed up; can I run the test binaries without GreenTea?
+  The test binaries are built under:
+```
+  <repo folder>/BUILD/tests/<Target Name>/<Toolchain>/simple-mbed-cloud-client/TESTS/<Test Suites>/<test case>/<test case name>.hex. 
+```
+  You may copy the binary you want to manually test and flash it to the device, then when the device boots, paste the following line to the serial console to trigger the test:
+```
+ {{__sync;1}}
+```   
+   
 ### Known issues
 
 Check open issues on [GitHub](https://github.com/ARMmbed/simple-mbed-cloud-client/issues).
