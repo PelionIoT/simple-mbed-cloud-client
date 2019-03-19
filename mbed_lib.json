@@ -104,8 +104,8 @@
             "help": "Optional macro SECONDARY_PARTITION_SIZE in bytes, deault is 1GB. This requires auto_partition to be enabled.",
             "macro_name": "SECONDARY_PARTITION_SIZE"
         },
-        "use-stl": {
-            "help": "Whether to use the C++ STL functions. If you're resource constrained and are not using STL string / vector in your application, disable it.",
+        "enable-cpp-stl": {
+            "help": "Whether to use the C++ Standard Template Library (STL) functions with MbedCloudClient and LWM2M resources. If you're planning to make use of STL strings/vectors in your application, enable this. Note that your application will use about 10KB Flash.",
             "macro_name": "MBED_CLOUD_CLIENT_STL_API",
             "value": 0
         }
