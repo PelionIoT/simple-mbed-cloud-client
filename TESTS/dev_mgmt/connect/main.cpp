@@ -24,8 +24,8 @@
 #include "greentea-client/test_env.h"
 #include "common_defines_test.h"
 
-#ifndef MBED_CONF_APP_BASICS_TEST_FS_SIZE
-  #define MBED_CONF_APP_BASICS_TEST_FS_SIZE (2*1024*1024)
+#ifndef MBED_CONF_APP_TESTS_FS_SIZE
+  #define MBED_CONF_APP_TESTS_FS_SIZE (2*1024*1024)
 #endif
 
 #if !defined(MBED_CONF_APP_NO_LED)
@@ -143,7 +143,7 @@ void spdmc_testsuite_connect(void) {
 
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
-    SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_BASICS_TEST_FS_SIZE);
+    SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_TESTS_FS_SIZE);
 #if TEST_USE_FILESYSTEM == FS_FAT
     FATFileSystem fs("fs", &sd);
 #else
