@@ -36,8 +36,8 @@
   #include "alice.h"
 #endif
 
-#ifndef MBED_CONF_APP_BASICS_TEST_FS_SIZE
-  #define MBED_CONF_APP_BASICS_TEST_FS_SIZE (2*1024*1024)
+#ifndef MBED_CONF_APP_TESTS_FS_SIZE
+  #define MBED_CONF_APP_TESTS_FS_SIZE (2*1024*1024)
 #endif
 
 using namespace utest::v1;
@@ -52,7 +52,7 @@ void led_thread() {
 #endif
 
 BlockDevice* bd = BlockDevice::get_default_instance();
-SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_BASICS_TEST_FS_SIZE);
+SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_TESTS_FS_SIZE);
 #if TEST_USE_FILESYSTEM == FS_FAT
 FATFileSystem fs("sd");
 #else
