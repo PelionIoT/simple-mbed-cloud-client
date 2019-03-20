@@ -105,7 +105,7 @@
             "macro_name": "SECONDARY_PARTITION_SIZE"
         },
         "enable-cpp-stl": {
-            "help": "Whether to use the C++ Standard Template Library (STL) functions with MbedCloudClient and LWM2M resources. If you're planning to make use of STL strings/vectors in your application, enable this. Note that your application will use about 10KB Flash.",
+            "help": "Enable this if you're already using STL strings/vectors in your application. If you don't use STL functionality, keep this disabled, as it will increase flash usage by 15K Flash.",
             "macro_name": "MBED_CLOUD_CLIENT_STL_API",
             "value": 0
         }
