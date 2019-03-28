@@ -2,7 +2,8 @@
     "name": "device-management",
     "macros": [
         "ARM_UC_USE_PAL_BLOCKDEVICE=1",
-        "MBED_CLOUD_CLIENT_UPDATE_STORAGE=ARM_UCP_FLASHIAP_BLOCKDEVICE"
+        "MBED_CLOUD_CLIENT_UPDATE_STORAGE=ARM_UCP_FLASHIAP_BLOCKDEVICE",
+        "MBED_CLIENT_DISABLE_EST_FEATURE"
     ],
     "config": {
         "flash-start-address": {
