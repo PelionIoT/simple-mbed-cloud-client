@@ -22,9 +22,44 @@ from mbed_cloud.device_directory import DeviceDirectoryAPI
 from mbed_cloud.connect import ConnectAPI
 import os
 import time
+import hashlib
 import subprocess
 import re
 import signal
+import pkg_resources
+
+
+# Check for that manifest_tool.json exists
+if not os.path.exists(".manifest_tool.json"):
+    raise RuntimeError(
+        'Cannot find "manifest_tool.json" to verify "mbed dm init..."')
+
+# Check that user ran "mbed dm init..."
+json_hash = hashlib.md5()
+with open(".manifest_tool.json", "r") as fid:
+    json_hash.update(fid.read())
+if json_hash.hexdigest() == "de302858ac31a2d68123a18b57702777":
+    err_msg = "".join([
+        'Cannot detect change in manifest_tool.json ',
+        '(md5={})'.format(json_hash.hexdigest()),
+        ', initialize Pelion update with:\n',
+        'mbed dm init -d "<your company name in Pelion DM>"',
+        '--model-name "<product model identifier>" -q --force'])
+    raise RuntimeError(err_msg)
+
+# Check for old mbed-cloud-sdk version.
+#   Prior to 2.0.6 the connectApi.set_resource_value_async()
+#   required a string variable. This check is important because
+#   mbed-os/requirements.txt also defines mbed-cloud-sdk as
+#   a requiremnt also with too old version.
+sdk_version = pkg_resources.get_distribution("mbed-cloud-sdk").version
+sdk_version = pkg_resources.parse_version(sdk_version)
+min_version = pkg_resources.parse_version("2.0.6")
+if sdk_version < min_version:
+    err_msg = "".join(
+        ['SPDMC tests require mbed-cloud-sdk >= 2.0.6, ',
+         'currently installed version is "{}"'.format(sdk_version)])
+    raise ImportError(err_msg)
 
 DEFAULT_CYCLE_PERIOD = 1.0
 
