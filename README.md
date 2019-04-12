@@ -338,7 +338,7 @@ Mbed Device Management provides built-in tests to help you when define your devi
 Mbed Device Management tests rely on the Python SDK to test the end-to-end solution. To install the Python SDK:
 
 ```
- $ pip install mbed-cloud-sdk
+ $ pip install mbed-cloud-sdk>=2.0.6
 ```
 
 <span class="notes">**Note:** The Python SDK requires Python 2.7.10+ or Python 3.4.3+, built with SSL support.</span>
