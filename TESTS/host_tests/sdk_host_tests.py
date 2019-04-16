@@ -320,10 +320,6 @@ class SDKTests(BaseHostTest):
             return -1
 
         api_key_val = match.group(1).strip()
-
-        # Get API KEY and remove LF char if included
-        self.logger.prn_inf("CLOUD_SDK_API_KEY: " + api_key_val)
-
         api_config = {"api_key" : api_key_val, "host" : "https://api.us-east-1.mbedcloud.com"}
 
         self.iteration = 0
