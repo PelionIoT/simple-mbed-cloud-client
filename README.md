@@ -206,13 +206,13 @@ At this point, we recommend you run the "connect" test suite, which verifies tha
 If you already configured your Pelion API key and initialized your credentials as described in the [previous section](#adding-device-management-feature-to-your-application), you can compile the "Connect" tests using:
 
 ```
-$ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect -DMBED_TEST_MODE --compile
+$ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests* -DMBED_TEST_MODE --compile
 ```
 
 To run the tests:
 
 ```
-$ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple*dev*connect --run -v
+$ mbed test -t <TOOLCHAIN> -m <BOARD> -n simple-mbed-cloud-client-tests* --run -v
 ```
 
 ### 2. Bootloader configuration
