@@ -18,6 +18,7 @@
 
 from mbed_host_tests import BaseHostTest
 from mbed_host_tests.host_tests_logger import HtrunLogger
+from mbed_cloud.account_management import AccountManagementAPI
 from mbed_cloud.device_directory import DeviceDirectoryAPI
 from mbed_cloud.connect import ConnectAPI
 import os
@@ -316,6 +317,32 @@ class SDKTests(BaseHostTest):
         self.send_safe('iteration', self.iteration)
 
 
+    def _check_account_id_match(self, api_config):
+        accountApi = AccountManagementAPI(api_config)
+
+        # Check that API key matches mbed_cloud_dev_credentials.c
+        re_account_id = re.compile(r"^const char MBED_CLOUD_DEV_ACCOUNT_ID\[\] = \"(?P<account_id>[0-9a-f]{32})\";$")
+        credential_account_id = None
+        with open("mbed_cloud_dev_credentials.c", "r") as fid:
+            for line in fid:
+                match = re_account_id.match(line)
+                if match:
+                    credential_account_id = match.group("account_id")
+                    break
+            else:
+                # Coult not find account_id line from "mbed_cloud_dev_credentials.c"
+                self.logger.prn_wrn("WARNING: mbed_cloud_dev_credentials.c parsing failed, cannot verify matching account IDs.")
+                return
+
+        # Get API key account ID
+        api_key_account_id = accountApi.get_account().id
+
+        # Compare keys
+        if credential_account_id != api_key_account_id:
+            self.logger.prn_err('ERROR: "mbed_cloud_dev_credentials.c" account ID of "{}" does not match CLOUD_SDK_API_KEY account ID of "{}"'.format(
+                credential_account_id, api_key_account_id))
+            raise KeyError
+
     """
     Host setup routines
     """
@@ -367,6 +394,12 @@ class SDKTests(BaseHostTest):
         # Instantiate Device and Connect API
         self.deviceApi = DeviceDirectoryAPI(api_config)
         self.connectApi = ConnectAPI(api_config)
+
+        # Check matching account ID between CLOUD_SDK_API_KEY and "mbed_cloud_dev_credentials.c"
+        try:
+            self._check_account_id_match(api_config)
+        except KeyError:
+            return -1
 
     def result(self):
         return self.__result
