@@ -41,7 +41,7 @@
   const char dl_path[] = "/mbed-test-files/alice.txt";
 #endif
 
-const char req_template[] = "GET %s  HTTP/1.1\nHost: %s\n\n";
+const char req_template[] = "GET %s HTTP/1.1\nHost: %s\n\n";
 
 #define REQ_BUF_SIZE        256
 #define RECV_BUF_SIZE       1024
