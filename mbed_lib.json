@@ -1,9 +1,8 @@
 {
     "name": "device-management",
     "macros": [
-        "ARM_UC_USE_PAL_BLOCKDEVICE=1",
-        "MBED_CLOUD_CLIENT_UPDATE_STORAGE=ARM_UCP_FLASHIAP_BLOCKDEVICE",
-        "MBED_CLIENT_DISABLE_EST_FEATURE"
+        "MBED_BOOTLOADER_SIZE=(32*1024)",
+        "ARM_UC_USE_PAL_BLOCKDEVICE=1"
     ],
     "config": {
         "flash-start-address": {
@@ -64,7 +63,7 @@
         "pal-user-defined-configuration": {
             "help": "Defines which PAL configuration the board should use.",
             "macro_name": "PAL_USER_DEFINED_CONFIGURATION",
-            "value": "\"sotp_fs_config_MbedOS.h\""
+            "value": "\"pal_config_MbedOS.h\""
         },
         "pal_fs_mount_point_primary": {
             "help": "pal_fs_mount_point_primary",
@@ -110,5 +109,12 @@
             "macro_name": "MBED_CLOUD_CLIENT_STL_API",
             "value": 0
         }
-    }
+    },
+    "target_overrides": {
+        "*": {
+            "pal_number_of_partition": 1,
+            "partition_mode": 1,
+            "auto_partition": 1
+        }
+     }    
 }
