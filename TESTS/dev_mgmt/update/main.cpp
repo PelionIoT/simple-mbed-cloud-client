@@ -23,6 +23,9 @@
 #include "simple-mbed-cloud-client.h"
 #include "greentea-client/test_env.h"
 #include "common_defines_test.h"
+#ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+#include "kv_config.h"
+#endif
 
 #ifndef MBED_CONF_APP_TESTS_FS_SIZE
   #define MBED_CONF_APP_TESTS_FS_SIZE (2*1024*1024)
@@ -149,15 +152,29 @@ void spdmc_testsuite_update(void) {
     test_case_start("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, 1);
     logger("[INFO] Attempting to initialize storage.\r\n");
 
+  #ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+          logger("[INFO] Attempting to initialize KVSTORE.\r\n");
+  
+          // This wait will allow the board more time to initialize
+          wait_ms(2000);
+          int status = kv_init_storage_config();
+          if (status != MBED_SUCCESS) {
+              logger("[ERROR] kv_init_storage_config() - failed \n");
+          }
+  
+  #else	//MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+ 
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
     SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_TESTS_FS_SIZE);
-#if TEST_USE_FILESYSTEM == FS_FAT
-    FATFileSystem fs("fs", &sd);
-#else
-    LittleFileSystem fs("fs", &sd);
-#endif
+      #if TEST_USE_FILESYSTEM == FS_FAT
+          FATFileSystem fs("fs", &sd);
+      #else
+          LittleFileSystem fs("fs", &sd);
+      #endif
 
+  #endif  //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+ 
     test_case_finish("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, iteration + 1, 0);
 
     // Corrupt the image after successful firmware update to ensure that the bootloader won't try to apply it for other test runs
@@ -166,6 +183,11 @@ void spdmc_testsuite_update(void) {
         test_case_start("Post-update Erase", 11);
 
         int erase_status;
+
+    #ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+        logger("[INFO] Test to erase storage with KVSTORE, NOT IMPLEMENTED.\r\n");
+        erase_status = 0;
+    #else	//MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
         if (bd->get_erase_value() >= 0) {
             // Blockdevice supports a straight erase
             erase_status = bd->erase(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS, bd->get_erase_size(MBED_CONF_UPDATE_CLIENT_STORAGE_ADDRESS));
@@ -177,6 +199,7 @@ void spdmc_testsuite_update(void) {
         if (erase_status != 0) {
             logger("[ERROR] Post-update image invalidation failed.\n");
         }
+    #endif	//MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT    
         test_case_finish("Post-update Erase", (erase_status == 0), (erase_status != 0));
 #endif
     }
@@ -211,7 +234,12 @@ void spdmc_testsuite_update(void) {
         test_case_start("Format " TEST_FILESYSTEM_TYPE, 3);
         logger("[INFO] Resetting storage to a clean state for test.\n");
 
-        int storage_status = fs.reformat(&sd);
+      #ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT	
+        logger("[INFO] Test for formatting KVStore NOT IMPLEMENTED \n");
+        int storage_status = 0;
+      #else	//MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+
+        storage_status = fs.reformat(&sd);
         if (storage_status != 0) {
             storage_status = sd.erase(0, sd.size());
             if (storage_status == 0) {
@@ -221,7 +249,8 @@ void spdmc_testsuite_update(void) {
                 }
             }
         }
-
+      #endif //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+      
         // Report status to console.
         if (storage_status == 0) {
             logger("[INFO] Storage format successful.\r\n");
@@ -235,9 +264,14 @@ void spdmc_testsuite_update(void) {
 
     // SimpleMbedCloudClient initialization must be successful.
     test_case_start("Initialize Simple PDMC", 4);
-
-    SimpleMbedCloudClient client(net, &sd, &fs);
-    int client_status = client.init();
+    
+    #ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT	
+        SimpleMbedCloudClient client(net);
+    #else  //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+        SimpleMbedCloudClient client(net, &sd, &fs);
+    #endif  //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+      
+      int client_status = client.init();
 
     // Report status to console.
     if (client_status == 0) {
