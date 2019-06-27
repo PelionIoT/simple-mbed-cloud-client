@@ -23,6 +23,9 @@
 #include "simple-mbed-cloud-client.h"
 #include "greentea-client/test_env.h"
 #include "common_defines_test.h"
+#ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+#include "kv_config.h"
+#endif
 
 #ifndef MBED_CONF_APP_TESTS_FS_SIZE
   #define MBED_CONF_APP_TESTS_FS_SIZE (2*1024*1024)
@@ -141,22 +144,42 @@ void spdmc_testsuite_connect(void) {
     test_case_start("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, 2);
     logger("[INFO] Attempting to initialize storage.\r\n");
 
+  #ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
+        logger("[INFO] Attempting to initialize KVSTORE.\r\n");
+    	
+        // This wait will allow the board more time to initialize
+        wait_ms(2000);
+        int status = kv_init_storage_config();
+        if (status != MBED_SUCCESS) {
+            logger("[ERROR] kv_init_storage_config() - failed \n");
+        }
+    	
+  #else	//MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
     // Default storage definition.
     BlockDevice* bd = BlockDevice::get_default_instance();
     SlicingBlockDevice sd(bd, 0, MBED_CONF_APP_TESTS_FS_SIZE);
-#if TEST_USE_FILESYSTEM == FS_FAT
-    FATFileSystem fs("fs", &sd);
-#else
-	LittleFileSystem fs("fs", &sd);
-#endif
+
+    #if TEST_USE_FILESYSTEM == FS_FAT
+        FATFileSystem fs("fs", &sd);
+    #else
+	    LittleFileSystem fs("fs", &sd);
+    #endif
+
+  #endif  //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
 
     test_case_finish("Initialize " TEST_BLOCK_DEVICE_TYPE "+" TEST_FILESYSTEM_TYPE, iteration + 1, 0);
 
+
     if (iteration == 0) {
         test_case_start("Format " TEST_FILESYSTEM_TYPE, 3);
+
+      #ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT	
+        logger("[INFO] Test for formatting KVStore NOT IMPLEMENTED \n");
+        int storage_status = 0;
+      #else	//MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT	
         logger("[INFO] Resetting storage to a clean state for test.\n");
 
-        int storage_status = fs.reformat(&sd);
+        storage_status = fs.reformat(&sd);
         if (storage_status != 0) {
             storage_status = sd.erase(0, sd.size());
             if (storage_status == 0) {
@@ -166,7 +189,8 @@ void spdmc_testsuite_connect(void) {
                 }
             }
         }
-
+      #endif  //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT	
+      
         // Report status to console.
         if (storage_status == 0) {
             logger("[INFO] Storage format successful.\r\n");
@@ -177,11 +201,15 @@ void spdmc_testsuite_connect(void) {
 
         test_case_finish("Format " TEST_FILESYSTEM_TYPE, (storage_status == 0), (storage_status != 0));
     }
-
+    
     // SimpleMbedCloudClient initialization must be successful.
     test_case_start("Initialize Simple PDMC", 4);
 
+  #ifdef MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT	
+    SimpleMbedCloudClient client(net);
+  #else  //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
     SimpleMbedCloudClient client(net, &sd, &fs);
+  #endif  //MBED_CONF_MBED_CLOUD_CLIENT_EXTERNAL_SST_SUPPORT
     int client_status = client.init();
 
     // Report status to console.
@@ -220,6 +248,7 @@ void spdmc_testsuite_connect(void) {
     }
     // Set client callback to report endpoint name.
     client.on_registered(&registered);
+	
     client.register_and_connect();
 
     i = 1200; // wait 120 seconds
@@ -293,8 +322,8 @@ void spdmc_testsuite_connect(void) {
         test_case_start("Post-reset Identity", 8);
         int identity_status;
 
-        logger("[INFO] Wait up to 5 seconds for Device Directory to update after reboot.\r\n");
-        i = 50;
+        logger("[INFO] Wait up to 10 seconds for Device Directory to update after reboot.\r\n");
+        i = 100;
         while (i-- > 0 and !endpointInfo) {
             wait(100);
         }
@@ -308,10 +337,10 @@ void spdmc_testsuite_connect(void) {
             if (strcmp(_key, "verified") == 0) {
                 if (atoi(_value)) {
                     identity_status = 0;
-                    logger("[INFO] Device ID consistent, SOTP and Secure Storage is preserved correctly.\r\n");
+                    logger("[INFO] Device ID consistent, SOTP (or KVStore) and Secure Storage is preserved correctly.\r\n");
                 } else {
                     identity_status = -1;
-                    logger("[ERROR] Device ID is inconsistent. SOTP and Secure Storage was not preserved.\r\n");
+                    logger("[ERROR] Device ID is inconsistent. SOTP (or KVStore) and Secure Storage was not preserved.\r\n");
                 }
                 break;
             }

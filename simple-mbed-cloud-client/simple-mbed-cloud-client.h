@@ -45,6 +45,13 @@ public:
     SimpleMbedCloudClient(NetworkInterface *net, BlockDevice *bd, FileSystem *fs);
 
     /**
+     * Initialize SimpleMbedCloudClient without specifying storage
+     *
+     * @param net A connected network interface
+     */
+    SimpleMbedCloudClient(NetworkInterface *net);
+
+    /**
      * SimpleMbedCloudClient destructor
      *
      * This deletes all managed resources
