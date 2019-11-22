@@ -1,3 +1,9 @@
+# Note
+
+**This library has been deprecated and is no longer maintained.**
+
+**Please migrate your example application to [mbed-os-example-pelion](https://github.com/ARMmbed/mbed-os-example-pelion)**
+
 # Device Management for Mbed OS
 
 (This was previously called Simple Mbed Cloud Client.)
